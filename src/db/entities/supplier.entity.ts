@@ -1,6 +1,9 @@
 import { BaseEntity, Entity, PrimaryKey, Property } from '@mikro-orm/core';
+import { SupplierRepository } from './repositories/supplier.repository';
 
-@Entity({})
+@Entity({
+  repository: () => SupplierRepository,
+})
 export class Supplier extends BaseEntity {
   @PrimaryKey()
   id!: number;
