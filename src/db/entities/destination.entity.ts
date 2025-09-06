@@ -2,8 +2,8 @@ import { BaseEntity, Entity, PrimaryKey, Property } from '@mikro-orm/core';
 
 @Entity({})
 export class Destination extends BaseEntity {
-  @PrimaryKey()
-  id!: string;
+  @PrimaryKey({ autoincrement: false })
+  id!: number;
 
   @Property()
   country!: string;

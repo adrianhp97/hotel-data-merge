@@ -1,5 +1,5 @@
 import { Controller, Get, Query, UsePipes } from '@nestjs/common';
-import { ZodValidationPipe } from 'src/plugins/zod.pipe';
+import { ZodValidationPipe } from 'src/pipes/zod.pipe';
 import {
   GetHotelsParameterDTO,
   getHotelsParameterSchema,
@@ -13,9 +13,9 @@ export class HotelsController {
   @Get()
   @UsePipes(new ZodValidationPipe(getHotelsParameterSchema))
   async getHotels(@Query() query: GetHotelsParameterDTO) {
+    // TODO: Pagination
     const hotels = await this.hotelService.getHotels(query);
 
-    // TODO: Mapping to response
     return hotels;
   }
 }

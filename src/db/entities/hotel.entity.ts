@@ -12,17 +12,17 @@ import { Amenity } from './amenity.entity';
 import { HotelRepository } from './repositories/hotel.repository';
 
 export type HotelLocation = {
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
   address?: string;
-  city: string;
-  country: string;
+  city?: string;
+  country?: string;
 };
 
 export type HotelImageCategory = 'rooms' | 'site' | 'amenities';
 export type HotelImage = {
   link: string;
-  description?: string;
+  description: string;
 };
 
 @Entity({
@@ -41,7 +41,7 @@ export class Hotel extends BaseEntity {
   @Property({ type: 'json' })
   location: HotelLocation;
 
-  @Property({ nullable: true })
+  @Property({ type: 'text', nullable: true })
   description?: string;
 
   @ManyToMany(() => Amenity, (amenity) => amenity.hotels, {
@@ -51,7 +51,7 @@ export class Hotel extends BaseEntity {
   amenities = new Collection<Amenity>(this);
 
   @Property({ type: 'json', nullable: true })
-  images?: Partial<Record<HotelImageCategory, HotelImage[]>>;
+  images?: Partial<Record<HotelImageCategory, HotelImage[]>> = {};
 
   @Property({ type: 'string[]', nullable: true })
   booking_conditions?: string[];
@@ -59,6 +59,6 @@ export class Hotel extends BaseEntity {
   @Property()
   created_at? = new Date();
 
-  @Property({ onUpdate: () => new Date() })
+  @Property({ onUpdate: () => new Date(), version: true })
   updated_at? = new Date();
 }

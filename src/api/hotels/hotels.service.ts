@@ -5,6 +5,8 @@ import { Hotel } from 'src/db/entities/hotel.entity';
 import { HotelRepository } from 'src/db/entities/repositories/hotel.repository';
 import { FilterQuery } from '@mikro-orm/core';
 import { SuppliersService } from 'src/provider/suppliers/suppliers.service';
+import { HotelDTO } from 'src/dto/hotel.dto';
+import { HotelTransformer } from 'src/transformers/hotel.transformer';
 
 @Injectable()
 export class HotelsService {
@@ -15,7 +17,7 @@ export class HotelsService {
     private readonly hotelRepository: HotelRepository,
   ) {}
 
-  async getHotels(parameter: GetHotelsParameterDTO) {
+  async getHotels(parameter: GetHotelsParameterDTO): Promise<HotelDTO[]> {
     await this.supplierSerivice.processData();
 
     const filter: FilterQuery<Hotel> = {};
@@ -34,6 +36,6 @@ export class HotelsService {
       populate: ['amenities', 'destination'],
     });
 
-    return hotels;
+    return hotels.map((hotel) => HotelTransformer.toDTO(hotel));
   }
 }
