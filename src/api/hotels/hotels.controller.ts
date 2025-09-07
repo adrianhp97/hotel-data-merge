@@ -18,14 +18,4 @@ export class HotelsController {
 
     return hotels;
   }
-
-  @Get('/refresh-from-suppliers')
-  @UsePipes(new ZodValidationPipe(getHotelsParameterSchema))
-  async refreshFromSuppliers() {
-    await this.hotelService.refreshFromSuppliers();
-
-    return {
-      success: true,
-    };
-  }
 }

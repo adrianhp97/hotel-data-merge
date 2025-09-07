@@ -52,7 +52,7 @@ export class SuppliersStrategy {
       const hotelsToDelete = await em
         .createQueryBuilder(Hotel, 'h')
         .leftJoin('h.suppliers', 's')
-        .where('s.hotel IS NULL')
+        .where('s.supplier IS NULL')
         .getResultList();
 
       if (hotelsToDelete.length === 0) {

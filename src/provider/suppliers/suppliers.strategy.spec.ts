@@ -388,7 +388,7 @@ describe('SuppliersStrategy', () => {
       expect(mockForkedEm.transactional).toHaveBeenCalledTimes(1);
       expect(mockForkedEm.createQueryBuilder).toHaveBeenCalledWith(Hotel, 'h');
       expect(mockForkedEm.leftJoin).toHaveBeenCalledWith('h.suppliers', 's');
-      expect(mockForkedEm.where).toHaveBeenCalledWith('s.hotel IS NULL');
+      expect(mockForkedEm.where).toHaveBeenCalledWith('s.supplier IS NULL');
       expect(mockForkedEm.nativeDelete).toHaveBeenCalledWith(Hotel, {
         id: { $in: ['orphan1', 'orphan2'] },
       });
