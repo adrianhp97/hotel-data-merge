@@ -4,7 +4,7 @@ import supplierConfig from 'src/config/supplier.config';
 import { ConfigType } from '@nestjs/config';
 import { Destination } from 'src/db/entities/destination.entity';
 import { Inject, Injectable } from '@nestjs/common';
-import { LockMode, SqlEntityManager } from '@mikro-orm/postgresql';
+import { SqlEntityManager } from '@mikro-orm/postgresql';
 import {
   getArrayMap,
   mergeArrayByKey,
@@ -25,7 +25,7 @@ type HotelRaw = {
   name: string;
   lat: number;
   lng: number;
-  address: string;
+  address: string | null;
   info: string;
   amenities?: string[];
   images: Partial<{
@@ -33,8 +33,6 @@ type HotelRaw = {
     amenities: ImageRaw[];
   }>;
 };
-
-type LoadPayload = { clean: Hotel; raw: HotelRaw }[];
 
 @Injectable()
 export class PatagoniaStrategy implements SupplierExtractorStrategy {
@@ -48,146 +46,118 @@ export class PatagoniaStrategy implements SupplierExtractorStrategy {
   ) {
     this.config = this.supConfig.patagonia;
   }
-
   async fetchData(): Promise<Hotel[]> {
-    const rawHotels = await this.extract();
-    const cleanedHotels = await this.transforms(rawHotels);
-    return this.loads(cleanedHotels);
+    const em = this.em.fork(); // single fork for entire operation
+
+    return em.transactional(async (em) => {
+      const rawHotels = await this.extract();
+      const cleanedHotels = await Promise.all(
+        rawHotels.map((raw) => this.transform(raw, em)),
+      );
+      return this.loads(cleanedHotels, em);
+    });
   }
 
-  async extract() {
+  async extract(): Promise<HotelRaw[]> {
     const response = await fetch(this.config.host ?? '');
-
-    const data = (await response.json()) as HotelRaw[];
-
-    return data;
+    return (await response.json()) as HotelRaw[];
   }
 
-  async transforms(rawData: HotelRaw[]): Promise<LoadPayload> {
-    return Promise.all(
-      rawData.map(async (item) => {
-        const cleanHotel = await this.transform(item);
-        return {
-          clean: cleanHotel,
-          raw: item,
-        };
-      }),
-    );
-  }
-
-  async transform(rawHotel: HotelRaw): Promise<Hotel> {
-    const em = this.em.fork();
-
+  async transform(rawHotel: HotelRaw, em: SqlEntityManager): Promise<Hotel> {
+    // --- Upsert Destination ---
     let destination = await em.findOne(Destination, rawHotel.destination);
-    if (destination === null) {
-      destination = new Destination();
-      destination.id = rawHotel.destination;
-      destination.country = UNDEFINED_DESTINATION_LABEL;
-      destination.city = UNDEFINED_DESTINATION_LABEL;
+    if (!destination) {
+      destination = em.create(Destination, {
+        id: rawHotel.destination,
+        country: UNDEFINED_DESTINATION_LABEL,
+        city: UNDEFINED_DESTINATION_LABEL,
+      });
     }
+    em.persist(destination);
 
-    let hotel = await em.findOne(Hotel, rawHotel.id, {
-      populate: ['destination'],
+    // --- Upsert Hotel ---
+    let hotel: Hotel | null = await em.findOne(Hotel, rawHotel.id, {
+      populate: ['destination', 'amenities'],
     });
 
-    if (hotel === null) {
-      hotel = new Hotel();
-      hotel.id = rawHotel.id;
-      hotel.destination = destination;
-      hotel.name = rawHotel.name;
+    if (!hotel) {
+      hotel = em.create(Hotel, {
+        id: rawHotel.id,
+        destination,
+        name: rawHotel.name.trim(),
+        location: {
+          lat: rawHotel.lat,
+          lng: rawHotel.lng,
+          address: rawHotel.address?.trim(),
+          city: destination.city,
+          country: destination.country,
+        },
+      });
     } else {
-      if (hotel.destination.id !== rawHotel.destination) {
-        // TODO: Handle not the same
-      }
-      hotel.name = getLongestString(hotel.name, rawHotel.name);
+      hotel.name = getLongestString(hotel.name, rawHotel.name.trim());
+      hotel.destination = destination;
+      hotel.location = {
+        lat: rawHotel.lat,
+        lng: rawHotel.lng,
+        address: rawHotel.address?.trim(),
+        city: destination.city,
+        country: destination.country,
+        ...(hotel.location ?? {}),
+      };
     }
 
-    hotel.location = {
-      lat: rawHotel.lat,
-      lng: rawHotel.lng,
-      address: rawHotel.address,
-      city: destination.city,
-      country: destination.country,
-
-      // Will use existing one if exist
-      ...(hotel.location ?? {}),
-    };
-
-    // Handle Images
-    if (!hotel.images) {
-      hotel.images = {};
-    }
-
+    // --- Merge Images ---
+    hotel.images = hotel.images ?? {};
     hotel.images.amenities = mergeArrayByKey(
       hotel.images.amenities ?? [],
-      rawHotel.images.amenities?.map((item) => ({
-        link: item.url,
-        description: item.description,
+      rawHotel.images.amenities?.map((i) => ({
+        link: i.url.trim(),
+        description: i.description.trim(),
       })) ?? [],
       'link',
     );
-
     hotel.images.rooms = mergeArrayByKey(
       hotel.images.rooms ?? [],
-      rawHotel.images.rooms?.map((item) => ({
-        link: item.url,
-        description: item.description,
+      rawHotel.images.rooms?.map((i) => ({
+        link: i.url.trim(),
+        description: i.description.trim(),
       })) ?? [],
       'link',
     );
 
-    // Handle Amenities
-    await em.populate(hotel, ['amenities']);
-
+    // --- Upsert Amenities ---
     const rawAmenities = sortByLengthAndLexicographically(
-      rawHotel.amenities?.map((facility) => facility.toLowerCase()) ?? [],
+      rawHotel.amenities?.map((f) => f.toLowerCase().trim()) ?? [],
     );
-
     const existingAmenities = await em.find(Amenity, {
-      name: {
-        $in: rawAmenities,
-      },
+      name: { $in: rawAmenities },
     });
+    const amenitiesMap = getArrayMap(existingAmenities, 'name');
 
-    const amenitiesMapping = getArrayMap(existingAmenities, 'name');
-
-    for (const rawAmenity of rawAmenities) {
-      if (!amenitiesMapping.has(rawAmenity)) {
-        const newAmenity = new Amenity();
-        newAmenity.name = rawAmenity;
-        newAmenity.category = 'general';
-        newAmenity.synonyms = [];
-
-        amenitiesMapping.set(rawAmenity, newAmenity);
+    for (const aName of rawAmenities) {
+      let amenity = amenitiesMap.get(aName);
+      if (!amenity) {
+        amenity = em.create(Amenity, {
+          name: aName,
+          category: 'general',
+          synonyms: [],
+        });
+        amenitiesMap.set(aName, amenity);
       }
-      const amenity = amenitiesMapping.get(rawAmenity) as Amenity;
-      hotel.amenities.add(amenity);
+      hotel?.amenities.add(amenity);
+      em.persist(amenity);
     }
 
-    return hotel;
-  }
-
-  async loads(data: LoadPayload): Promise<Hotel[]> {
-    return Promise.all(data.map((item) => this.load(item.clean, item.raw)));
-  }
-
-  async load(hotel: Hotel, rawData: HotelRaw) {
-    const em = this.em.fork();
-
-    try {
-      await em.lock(Hotel, LockMode.OPTIMISTIC, hotel.updated_at);
-    } catch {
-      hotel = await this.transform(rawData);
-    }
-
-    for (let idx = 0; idx < hotel.amenities.length; idx++) {
-      em.persist(hotel.amenities[idx]);
-    }
-
-    em.persist(hotel.destination);
     em.persist(hotel);
-    await em.flush();
-
     return hotel;
+  }
+
+  async loads(data: Hotel[], em: SqlEntityManager): Promise<Hotel[]> {
+    const results: Hotel[] = [];
+    for (const hotel of data) {
+      await em.flush();
+      results.push(hotel);
+    }
+    return results;
   }
 }

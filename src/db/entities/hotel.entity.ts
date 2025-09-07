@@ -59,6 +59,6 @@ export class Hotel extends BaseEntity {
   @Property()
   created_at? = new Date();
 
-  @Property({ onUpdate: () => new Date(), version: true })
+  @Property({ onUpdate: () => new Date() })
   updated_at? = new Date();
 }

@@ -4,6 +4,7 @@ import { PaperfliesStrategy } from './strategy/paperflies.strategy';
 import { PatagoniaStrategy } from './strategy/patagonia.strategy';
 import { SqlEntityManager } from '@mikro-orm/postgresql';
 import { SupplierExtractorStrategy } from './suppliers.interface';
+import { Hotel } from 'src/db/entities/hotel.entity';
 
 export type Supplier = 'acme' | 'paperflies' | 'patagonia';
 
@@ -26,16 +27,16 @@ export class SuppliersStrategy {
   }
 
   async fetchData() {
-    return Promise.allSettled(
-      ['acme', 'paperflies', 'patagonia'].map((supplier) =>
-        this.processSuplier(supplier as Supplier),
-      ),
-    );
+    const result: Hotel[][] = [];
+    for (const supplier of ['acme', 'paperflies', 'patagonia']) {
+      const value = await this.processSuplier(supplier as Supplier);
+      result.push(value ?? []);
+    }
+    return Promise.allSettled(result);
   }
 
   async processSuplier(supplier: Supplier) {
     if (this.startegyMap.has(supplier)) {
-      console.log(this.startegyMap.get(supplier)?.fetchData());
       return this.startegyMap.get(supplier)?.fetchData();
     }
     throw new Error('Supplier not found');
