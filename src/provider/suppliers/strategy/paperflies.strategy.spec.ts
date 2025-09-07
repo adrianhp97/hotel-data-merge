@@ -90,7 +90,9 @@ describe('PaperfliesStrategy', () => {
 
       const result = await strategy.extract();
 
-      expect(global.fetch).toHaveBeenCalledWith('https://mock-paperflies-api.com');
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://mock-paperflies-api.com',
+      );
       expect(result).toEqual([mockPaperfliesRawHotel]);
     });
 
@@ -153,7 +155,10 @@ describe('PaperfliesStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue(mockAmenities);
 
-      const result = await strategy.transform(mockPaperfliesRawHotel, mockEntityManager);
+      const result = await strategy.transform(
+        mockPaperfliesRawHotel,
+        mockEntityManager,
+      );
 
       expect(mockEntityManager.findOne).toHaveBeenCalledWith(Destination, 5432);
       expect(mockEntityManager.findOne).toHaveBeenCalledWith(Hotel, 'iJhz', {
@@ -164,7 +169,10 @@ describe('PaperfliesStrategy', () => {
         country: 'Singapore',
         city: '?',
       });
-      expect(result.booking_conditions).toEqual(['All children are welcome.', 'WiFi is available.']);
+      expect(result.booking_conditions).toEqual([
+        'All children are welcome.',
+        'WiFi is available.',
+      ]);
     });
 
     it('should update existing hotel', async () => {
@@ -187,11 +195,19 @@ describe('PaperfliesStrategy', () => {
       mockEntityManager.find.mockResolvedValue([mockAmenity]);
       mockEntityManager.create.mockReturnValue(mockAmenity);
 
-      const result = await strategy.transform(mockPaperfliesRawHotel, mockEntityManager);
+      const result = await strategy.transform(
+        mockPaperfliesRawHotel,
+        mockEntityManager,
+      );
 
       expect(result.name).toBe('Beach Villas Singapore'); // longer name chosen
-      expect(result.description).toBe('Surrounded by tropical gardens, on the beachfront.'); // longer description chosen
-      expect(result.booking_conditions).toEqual(['All children are welcome.', 'WiFi is available.']);
+      expect(result.description).toBe(
+        'Surrounded by tropical gardens, on the beachfront.',
+      ); // longer description chosen
+      expect(result.booking_conditions).toEqual([
+        'All children are welcome.',
+        'WiFi is available.',
+      ]);
     });
 
     it('should handle missing amenities data', async () => {
@@ -210,7 +226,10 @@ describe('PaperfliesStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(rawHotelWithoutAmenities, mockEntityManager);
+      const result = await strategy.transform(
+        rawHotelWithoutAmenities,
+        mockEntityManager,
+      );
 
       expect(mockEntityManager.find).toHaveBeenCalledWith(Amenity, {
         name: { $in: [] },
@@ -237,7 +256,10 @@ describe('PaperfliesStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(rawHotelWithoutImages, mockEntityManager);
+      const result = await strategy.transform(
+        rawHotelWithoutImages,
+        mockEntityManager,
+      );
 
       expect(result.images).toEqual({
         site: [],
@@ -248,10 +270,7 @@ describe('PaperfliesStrategy', () => {
 
   describe('loads', () => {
     it('should flush all hotels and return them', async () => {
-      const mockHotels = [
-        { id: 'hotel1' } as Hotel,
-        { id: 'hotel2' } as Hotel,
-      ];
+      const mockHotels = [{ id: 'hotel1' } as Hotel, { id: 'hotel2' } as Hotel];
 
       mockEntityManager.flush.mockResolvedValue(undefined);
 
@@ -292,8 +311,8 @@ describe('PaperfliesStrategy', () => {
 
       mockEntityManager.create
         .mockReturnValue({ id: 5432, country: 'Singapore', city: '?' }) // destination
-        .mockReturnValue({ 
-          id: 'iJhz', 
+        .mockReturnValue({
+          id: 'iJhz',
           amenities: { add: jest.fn(), getItems: () => [] },
           images: {},
         }); // hotel
@@ -305,13 +324,17 @@ describe('PaperfliesStrategy', () => {
 
       expect(mockEntityManager.fork).toHaveBeenCalled();
       expect(mockForkedEm.transactional).toHaveBeenCalled();
-      expect(global.fetch).toHaveBeenCalledWith('https://mock-paperflies-api.com');
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://mock-paperflies-api.com',
+      );
       expect(result).toBeDefined();
     });
 
     it('should handle transaction rollback on error', async () => {
       const mockForkedEm = {
-        transactional: jest.fn().mockRejectedValue(new Error('Transaction failed')),
+        transactional: jest
+          .fn()
+          .mockRejectedValue(new Error('Transaction failed')),
       } as any;
 
       mockEntityManager.fork.mockReturnValue(mockForkedEm);

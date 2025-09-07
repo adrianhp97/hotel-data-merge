@@ -83,7 +83,9 @@ describe('PatagoniaStrategy', () => {
 
       const result = await strategy.extract();
 
-      expect(global.fetch).toHaveBeenCalledWith('https://mock-patagonia-api.com');
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://mock-patagonia-api.com',
+      );
       expect(result).toEqual([mockPatagoniaRawHotel]);
     });
   });
@@ -130,7 +132,10 @@ describe('PatagoniaStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(mockPatagoniaRawHotel, mockEntityManager);
+      const result = await strategy.transform(
+        mockPatagoniaRawHotel,
+        mockEntityManager,
+      );
 
       expect(mockEntityManager.create).toHaveBeenCalledWith(Destination, {
         id: 5432,
@@ -138,17 +143,20 @@ describe('PatagoniaStrategy', () => {
         city: '?',
       });
 
-      expect(mockEntityManager.create).toHaveBeenCalledWith(Hotel, expect.objectContaining({
-        id: 'iJhz',
-        name: 'Beach Villas Singapore',
-        location: {
-          lat: 1.264751,
-          lng: 103.824006,
-          address: '8 Sentosa Gateway, Beach Villas',
-          city: '?',
-          country: '?',
-        },
-      }));
+      expect(mockEntityManager.create).toHaveBeenCalledWith(
+        Hotel,
+        expect.objectContaining({
+          id: 'iJhz',
+          name: 'Beach Villas Singapore',
+          location: {
+            lat: 1.264751,
+            lng: 103.824006,
+            address: '8 Sentosa Gateway, Beach Villas',
+            city: '?',
+            country: '?',
+          },
+        }),
+      );
     });
 
     it('should handle null address', async () => {
@@ -168,7 +176,10 @@ describe('PatagoniaStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(mockPatagoniaRawHotelNullAddress, mockEntityManager);
+      const result = await strategy.transform(
+        mockPatagoniaRawHotelNullAddress,
+        mockEntityManager,
+      );
 
       expect(result.location.address).toBeUndefined();
     });
@@ -178,7 +189,9 @@ describe('PatagoniaStrategy', () => {
         ...mockHotel,
         images: {
           rooms: [{ link: 'existing-room.jpg', description: 'Existing room' }],
-          amenities: [{ link: 'existing-amenity.jpg', description: 'Existing amenity' }],
+          amenities: [
+            { link: 'existing-amenity.jpg', description: 'Existing amenity' },
+          ],
         },
         amenities: {
           add: jest.fn(),
@@ -192,15 +205,20 @@ describe('PatagoniaStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(mockPatagoniaRawHotel, mockEntityManager);
+      const result = await strategy.transform(
+        mockPatagoniaRawHotel,
+        mockEntityManager,
+      );
 
       expect(result.images?.rooms).toHaveLength(2); // existing + new
       expect(result.images?.amenities).toHaveLength(2); // existing + new
       expect(result.images?.rooms).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ link: 'existing-room.jpg' }),
-          expect.objectContaining({ link: 'https://d2ey9sqrvkqdfs.cloudfront.net/0qUb/2.jpg' }),
-        ])
+          expect.objectContaining({
+            link: 'https://d2ey9sqrvkqdfs.cloudfront.net/0qUb/2.jpg',
+          }),
+        ]),
       );
     });
 
@@ -220,7 +238,10 @@ describe('PatagoniaStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(rawHotelWithoutAmenities, mockEntityManager);
+      const result = await strategy.transform(
+        rawHotelWithoutAmenities,
+        mockEntityManager,
+      );
 
       expect(mockEntityManager.find).toHaveBeenCalledWith(Amenity, {
         name: { $in: [] },
@@ -246,7 +267,10 @@ describe('PatagoniaStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(rawHotelWithoutImages, mockEntityManager);
+      const result = await strategy.transform(
+        rawHotelWithoutImages,
+        mockEntityManager,
+      );
 
       expect(result.images?.amenities).toEqual([]);
       expect(result.images?.rooms).toEqual([]);
@@ -277,12 +301,15 @@ describe('PatagoniaStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(mockPatagoniaRawHotel, mockEntityManager);
+      const result = await strategy.transform(
+        mockPatagoniaRawHotel,
+        mockEntityManager,
+      );
 
       expect(result.name).toBe('Beach Villas Singapore'); // longer name chosen
       // Based on the spread order, existing location values will override new ones
       expect(result.location.lat).toBe(1.0); // existing value preserved
-      expect(result.location.lng).toBe(103.0); // existing value preserved  
+      expect(result.location.lng).toBe(103.0); // existing value preserved
       expect(result.location.address).toBe('Old address'); // existing value preserved
       expect(result).toBe(existingHotel); // Should be the same instance
     });
@@ -290,10 +317,7 @@ describe('PatagoniaStrategy', () => {
 
   describe('loads', () => {
     it('should flush all hotels', async () => {
-      const mockHotels = [
-        { id: 'hotel1' } as Hotel,
-        { id: 'hotel2' } as Hotel,
-      ];
+      const mockHotels = [{ id: 'hotel1' } as Hotel, { id: 'hotel2' } as Hotel];
 
       mockEntityManager.flush.mockResolvedValue(undefined);
 
@@ -319,10 +343,16 @@ describe('PatagoniaStrategy', () => {
       });
 
       mockEntityManager.findOne.mockResolvedValue(null);
-      mockEntityManager.create.mockImplementation((entity, data) => ({
-        ...data,
-        amenities: entity === Hotel ? { add: jest.fn(), getItems: () => [] } : undefined,
-      }) as any);
+      mockEntityManager.create.mockImplementation(
+        (entity, data) =>
+          ({
+            ...data,
+            amenities:
+              entity === Hotel
+                ? { add: jest.fn(), getItems: () => [] }
+                : undefined,
+          }) as any,
+      );
       mockEntityManager.find.mockResolvedValue([]);
       mockEntityManager.flush.mockResolvedValue(undefined);
 
