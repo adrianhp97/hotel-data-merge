@@ -56,6 +56,7 @@ describe('PatagoniaStrategy', () => {
       findOne: jest.fn(),
       find: jest.fn(),
       flush: jest.fn(),
+      upsert: jest.fn(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -113,6 +114,10 @@ describe('PatagoniaStrategy', () => {
         },
         destination: mockDestination,
         amenities: {
+          add: jest.fn(),
+          getItems: jest.fn().mockReturnValue([]),
+        },
+        suppliers: {
           add: jest.fn(),
           getItems: jest.fn().mockReturnValue([]),
         },
@@ -292,6 +297,10 @@ describe('PatagoniaStrategy', () => {
           add: jest.fn(),
           getItems: jest.fn().mockReturnValue([]),
         },
+        suppliers: {
+          add: jest.fn(),
+          getItems: jest.fn().mockReturnValue([]),
+        },
         images: {},
       };
 
@@ -348,6 +357,10 @@ describe('PatagoniaStrategy', () => {
           ({
             ...data,
             amenities:
+              entity === Hotel
+                ? { add: jest.fn(), getItems: () => [] }
+                : undefined,
+            suppliers:
               entity === Hotel
                 ? { add: jest.fn(), getItems: () => [] }
                 : undefined,

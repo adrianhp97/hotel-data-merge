@@ -8,6 +8,7 @@ import { ConfigType } from '@nestjs/config';
 import { SupplierExtractorStrategy } from '../suppliers.interface';
 import { getArrayMap, sortByLengthAndLexicographically } from 'src/utils/array';
 import { getLongestString } from 'src/utils/string';
+import { HotelSupplier } from 'src/db/entities/hotel-supplier';
 
 type HotelRaw = {
   Id: string;
@@ -43,6 +44,7 @@ export class AcmeStrategy implements SupplierExtractorStrategy {
       const cleanedHotels = await Promise.all(
         rawHotels.map((raw) => this.transform(raw, em)),
       );
+      await this.removedHotelsFromSupplier(cleanedHotels, em);
       return this.loads(cleanedHotels, em);
     });
   }
@@ -125,6 +127,12 @@ export class AcmeStrategy implements SupplierExtractorStrategy {
       em.persist(amenity);
     }
 
+    const acmeSupplier = await em.upsert(HotelSupplier, {
+      supplier: 'acme',
+      hotel,
+    });
+    hotel.suppliers.add(acmeSupplier);
+
     em.persist(hotel);
     return hotel;
   }
@@ -136,5 +144,28 @@ export class AcmeStrategy implements SupplierExtractorStrategy {
       results.push(hotel);
     }
     return results;
+  }
+
+  async removedHotelsFromSupplier(
+    newHotels: Hotel[],
+    em: SqlEntityManager,
+  ): Promise<string[]> {
+    const hotelIds = newHotels.map((h) => h.id);
+    const hotelsNeedToBeRemoved = await em.find(HotelSupplier, {
+      supplier: 'acme',
+      hotel: { $nin: hotelIds },
+    });
+
+    const hotelIdsNeedToBeRemovedIds = hotelsNeedToBeRemoved.map(
+      (hs) => hs.hotel.id,
+    );
+
+    for (const hs of hotelsNeedToBeRemoved) {
+      em.remove(hs);
+    }
+
+    await em.flush();
+
+    return hotelIdsNeedToBeRemovedIds;
   }
 }

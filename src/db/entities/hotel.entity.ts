@@ -4,12 +4,14 @@ import {
   Entity,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryKey,
   Property,
 } from '@mikro-orm/core';
 import { Destination } from './destination.entity';
 import { Amenity } from './amenity.entity';
 import { HotelRepository } from './repositories/hotel.repository';
+import { HotelSupplier } from './hotel-supplier';
 
 export type HotelLocation = {
   lat?: number;
@@ -55,6 +57,9 @@ export class Hotel extends BaseEntity {
 
   @Property({ type: 'string[]', nullable: true })
   booking_conditions?: string[];
+
+  @OneToMany(() => HotelSupplier, (hotelSupplier) => hotelSupplier.hotel)
+  suppliers = new Collection<HotelSupplier>(this);
 
   @Property()
   created_at? = new Date();

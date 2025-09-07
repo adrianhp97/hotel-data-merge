@@ -58,6 +58,7 @@ describe('PaperfliesStrategy', () => {
       findOne: jest.fn(),
       find: jest.fn(),
       flush: jest.fn(),
+      upsert: jest.fn(),
     } as any;
 
     mockConfigService = {
@@ -132,6 +133,10 @@ describe('PaperfliesStrategy', () => {
           add: jest.fn(),
           getItems: jest.fn().mockReturnValue([]),
         },
+        suppliers: {
+          add: jest.fn(),
+          getItems: jest.fn().mockReturnValue([]),
+        },
         images: {},
         booking_conditions: ['All children are welcome.', 'WiFi is available.'],
       } as any;
@@ -181,6 +186,10 @@ describe('PaperfliesStrategy', () => {
         name: 'Short Name',
         description: 'Short desc',
         amenities: {
+          add: jest.fn(),
+          getItems: jest.fn().mockReturnValue([]),
+        },
+        suppliers: {
           add: jest.fn(),
           getItems: jest.fn().mockReturnValue([]),
         },
@@ -314,6 +323,7 @@ describe('PaperfliesStrategy', () => {
         .mockReturnValue({
           id: 'iJhz',
           amenities: { add: jest.fn(), getItems: () => [] },
+          suppliers: { add: jest.fn(), getItems: () => [] },
           images: {},
         }); // hotel
 

@@ -38,4 +38,8 @@ export class HotelsService {
 
     return hotels.map((hotel) => HotelTransformer.toDTO(hotel));
   }
+
+  async refreshFromSuppliers(): Promise<void> {
+    await this.supplierSerivice.processData();
+  }
 }

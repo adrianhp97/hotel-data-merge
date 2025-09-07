@@ -13,6 +13,7 @@ import {
 import { Amenity } from 'src/db/entities/amenity.entity';
 import { getLongestString } from 'src/utils/string';
 import { UNDEFINED_DESTINATION_LABEL } from 'src/constants/common';
+import { HotelSupplier } from 'src/db/entities/hotel-supplier';
 
 type ImageRaw = {
   url: string;
@@ -54,6 +55,7 @@ export class PatagoniaStrategy implements SupplierExtractorStrategy {
       const cleanedHotels = await Promise.all(
         rawHotels.map((raw) => this.transform(raw, em)),
       );
+      await this.removedHotelsFromSupplier(cleanedHotels, em);
       return this.loads(cleanedHotels, em);
     });
   }
@@ -148,6 +150,12 @@ export class PatagoniaStrategy implements SupplierExtractorStrategy {
       em.persist(amenity);
     }
 
+    const patagoniaSupplier = await em.upsert(HotelSupplier, {
+      supplier: 'patagonia',
+      hotel,
+    });
+    hotel.suppliers.add(patagoniaSupplier);
+
     em.persist(hotel);
     return hotel;
   }
@@ -159,5 +167,28 @@ export class PatagoniaStrategy implements SupplierExtractorStrategy {
       results.push(hotel);
     }
     return results;
+  }
+
+  async removedHotelsFromSupplier(
+    newHotels: Hotel[],
+    em: SqlEntityManager,
+  ): Promise<string[]> {
+    const hotelIds = newHotels.map((h) => h.id);
+    const hotelsNeedToBeRemoved = await em.find(HotelSupplier, {
+      supplier: 'patagonia',
+      hotel: { $nin: hotelIds },
+    });
+
+    const hotelIdsNeedToBeRemovedIds = hotelsNeedToBeRemoved.map(
+      (hs) => hs.hotel.id,
+    );
+
+    for (const hs of hotelsNeedToBeRemoved) {
+      em.remove(hs);
+    }
+
+    await em.flush();
+
+    return hotelIdsNeedToBeRemovedIds;
   }
 }

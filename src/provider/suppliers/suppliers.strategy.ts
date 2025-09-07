@@ -5,8 +5,7 @@ import { PatagoniaStrategy } from './strategy/patagonia.strategy';
 import { SqlEntityManager } from '@mikro-orm/postgresql';
 import { SupplierExtractorStrategy } from './suppliers.interface';
 import { Hotel } from 'src/db/entities/hotel.entity';
-
-export type Supplier = 'acme' | 'paperflies' | 'patagonia';
+import { Supplier } from 'src/db/entities/hotel-supplier';
 
 @Injectable()
 export class SuppliersStrategy {
@@ -32,7 +31,11 @@ export class SuppliersStrategy {
       const value = await this.processSuplier(supplier as Supplier);
       result.push(value ?? []);
     }
-    return Promise.allSettled(result);
+    const allResult = await Promise.allSettled(result);
+
+    await this.cleanUpHotels();
+
+    return allResult;
   }
 
   async processSuplier(supplier: Supplier) {
@@ -40,5 +43,29 @@ export class SuppliersStrategy {
       return this.startegyMap.get(supplier)?.fetchData();
     }
     throw new Error('Supplier not found');
+  }
+
+  async cleanUpHotels(): Promise<number> {
+    const em = this.em.fork();
+
+    return em.transactional(async (em) => {
+      const hotelsToDelete = await em
+        .createQueryBuilder(Hotel, 'h')
+        .leftJoin('h.suppliers', 's')
+        .where('s.hotel IS NULL')
+        .getResultList();
+
+      if (hotelsToDelete.length === 0) {
+        return 0;
+      }
+
+      const hotelIds = hotelsToDelete.map((hotel) => hotel.id);
+
+      const deletedCount = await em.nativeDelete(Hotel, {
+        id: { $in: hotelIds },
+      });
+
+      return deletedCount;
+    });
   }
 }

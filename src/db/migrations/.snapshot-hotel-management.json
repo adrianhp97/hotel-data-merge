@@ -192,13 +192,12 @@
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamptz(3)",
+          "type": "timestamptz",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "length": 3,
-          "default": "current_timestamp(3)",
+          "length": 6,
           "mappedType": "datetime"
         }
       },
@@ -299,6 +298,62 @@
           "referencedTableName": "public.amenity",
           "createForeignKeyConstraint": true,
           "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "hotel_id": {
+          "name": "hotel_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "supplier": {
+          "name": "supplier",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        }
+      },
+      "name": "hotel_supplier",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "hotel_supplier_pkey",
+          "columnNames": [
+            "hotel_id",
+            "supplier"
+          ],
+          "composite": true,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "hotel_supplier_hotel_id_foreign": {
+          "constraintName": "hotel_supplier_hotel_id_foreign",
+          "columnNames": [
+            "hotel_id"
+          ],
+          "localTableName": "public.hotel_supplier",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.hotel",
+          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         }
       },

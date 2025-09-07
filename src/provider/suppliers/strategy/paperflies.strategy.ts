@@ -13,6 +13,7 @@ import {
 } from 'src/utils/array';
 import { getLongestString } from 'src/utils/string';
 import { UNDEFINED_DESTINATION_LABEL } from 'src/constants/common';
+import { HotelSupplier } from 'src/db/entities/hotel-supplier';
 
 type ImageRaw = {
   link: string;
@@ -59,6 +60,7 @@ export class PaperfliesStrategy implements SupplierExtractorStrategy {
       const cleanedHotels = await Promise.all(
         rawHotels.map((raw) => this.transform(raw, em)),
       );
+      await this.removedHotelsFromSupplier(cleanedHotels, em);
       return this.loads(cleanedHotels, em);
     });
   }
@@ -171,6 +173,12 @@ export class PaperfliesStrategy implements SupplierExtractorStrategy {
       }
     }
 
+    const paperfliesSupplier = await em.upsert(HotelSupplier, {
+      supplier: 'paperflies',
+      hotel,
+    });
+    hotel.suppliers.add(paperfliesSupplier);
+
     em.persist(hotel);
     return hotel;
   }
@@ -182,5 +190,28 @@ export class PaperfliesStrategy implements SupplierExtractorStrategy {
       results.push(hotel);
     }
     return results;
+  }
+
+  async removedHotelsFromSupplier(
+    newHotels: Hotel[],
+    em: SqlEntityManager,
+  ): Promise<string[]> {
+    const hotelIds = newHotels.map((h) => h.id);
+    const hotelsNeedToBeRemoved = await em.find(HotelSupplier, {
+      supplier: 'paperflies',
+      hotel: { $nin: hotelIds },
+    });
+
+    const hotelIdsNeedToBeRemovedIds = hotelsNeedToBeRemoved.map(
+      (hs) => hs.hotel.id,
+    );
+
+    for (const hs of hotelsNeedToBeRemoved) {
+      em.remove(hs);
+    }
+
+    await em.flush();
+
+    return hotelIdsNeedToBeRemovedIds;
   }
 }

@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SuppliersStrategy, Supplier } from './suppliers.strategy';
+import { SuppliersStrategy } from './suppliers.strategy';
 import { AcmeStrategy } from './strategy/acme.strategy';
 import { PaperfliesStrategy } from './strategy/paperflies.strategy';
 import { PatagoniaStrategy } from './strategy/patagonia.strategy';
 import { SqlEntityManager } from '@mikro-orm/postgresql';
 import { Hotel } from 'src/db/entities/hotel.entity';
+import { Supplier } from 'src/db/entities/hotel-supplier';
 
 describe('SuppliersStrategy', () => {
   let suppliersStrategy: SuppliersStrategy;
@@ -19,9 +20,20 @@ describe('SuppliersStrategy', () => {
   ];
 
   beforeEach(async () => {
+    const mockForkedEm = {
+      createQueryBuilder: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getResultList: jest.fn().mockResolvedValue([]),
+      nativeDelete: jest.fn().mockResolvedValue(0),
+      transactional: jest
+        .fn()
+        .mockImplementation((cb: any) => Promise.resolve(cb(mockForkedEm))),
+    };
+
     mockEntityManager = {
-      fork: jest.fn(),
-      transactional: jest.fn(),
+      fork: jest.fn().mockReturnValue(mockForkedEm),
+      transactional: jest.fn().mockImplementation((cb) => cb(mockForkedEm)),
     } as any;
 
     mockAcmeStrategy = {
@@ -59,6 +71,9 @@ describe('SuppliersStrategy', () => {
     }).compile();
 
     suppliersStrategy = module.get<SuppliersStrategy>(SuppliersStrategy);
+
+    // Mock the cleanUpHotels method to avoid side effects in fetchData tests
+    jest.spyOn(suppliersStrategy, 'cleanUpHotels').mockResolvedValue(0);
   });
 
   describe('constructor', () => {
@@ -87,7 +102,7 @@ describe('SuppliersStrategy', () => {
   });
 
   describe('fetchData', () => {
-    it('should process all suppliers and return settled promises', async () => {
+    it('should process all suppliers, call cleanup, and return settled promises', async () => {
       const acmeHotels = [{ id: 'acme1' } as Hotel];
       const paperfliesHotels = [{ id: 'paperflies1' } as Hotel];
       const patagoniaHotels = [{ id: 'patagonia1' } as Hotel];
@@ -101,6 +116,7 @@ describe('SuppliersStrategy', () => {
       expect(mockAcmeStrategy.fetchData).toHaveBeenCalledTimes(1);
       expect(mockPaperfliesStrategy.fetchData).toHaveBeenCalledTimes(1);
       expect(mockPatagoniaStrategy.fetchData).toHaveBeenCalledTimes(1);
+      expect(suppliersStrategy.cleanUpHotels).toHaveBeenCalledTimes(1);
 
       expect(result).toHaveLength(3);
       expect(result[0]).toEqual({ status: 'fulfilled', value: acmeHotels });
@@ -157,6 +173,7 @@ describe('SuppliersStrategy', () => {
 
       const result = await suppliersStrategy.fetchData();
 
+      expect(suppliersStrategy.cleanUpHotels).toHaveBeenCalledTimes(1);
       expect(result).toHaveLength(3);
       expect(result[0]).toEqual({ status: 'fulfilled', value: [] });
       expect(result[1]).toEqual({ status: 'fulfilled', value: [] });
@@ -170,6 +187,7 @@ describe('SuppliersStrategy', () => {
 
       const result = await suppliersStrategy.fetchData();
 
+      expect(suppliersStrategy.cleanUpHotels).toHaveBeenCalledTimes(1);
       expect(result).toHaveLength(3);
       expect(result[0]).toEqual({ status: 'fulfilled', value: [] }); // undefined becomes []
       expect(result[1]).toEqual({ status: 'fulfilled', value: mockHotels });
@@ -197,6 +215,7 @@ describe('SuppliersStrategy', () => {
       await suppliersStrategy.fetchData();
 
       expect(callOrder).toEqual(['acme', 'paperflies', 'patagonia']);
+      expect(suppliersStrategy.cleanUpHotels).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -315,6 +334,9 @@ describe('SuppliersStrategy', () => {
       expect(mockAcmeStrategy.fetchData).toHaveBeenCalledTimes(2);
       expect(mockPaperfliesStrategy.fetchData).toHaveBeenCalledTimes(2);
       expect(mockPatagoniaStrategy.fetchData).toHaveBeenCalledTimes(2);
+
+      // cleanUpHotels should also be called twice
+      expect(suppliersStrategy.cleanUpHotels).toHaveBeenCalledTimes(2);
     });
 
     it('should handle mixed success and failure scenarios', async () => {
@@ -332,6 +354,171 @@ describe('SuppliersStrategy', () => {
 
       expect(mockAcmeStrategy.fetchData).toHaveBeenCalledTimes(1);
       expect(mockPaperfliesStrategy.fetchData).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('cleanUpHotels', () => {
+    beforeEach(() => {
+      // Remove the spy for cleanUpHotels method to test the actual implementation
+      jest.restoreAllMocks();
+    });
+
+    it('should successfully clean up hotels without suppliers', async () => {
+      const hotelsWithoutSuppliers = [
+        { id: 'orphan1', name: 'Orphan Hotel 1' } as Hotel,
+        { id: 'orphan2', name: 'Orphan Hotel 2' } as Hotel,
+      ];
+
+      const mockForkedEm = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getResultList: jest.fn().mockResolvedValue(hotelsWithoutSuppliers),
+        nativeDelete: jest.fn().mockResolvedValue(2),
+        transactional: jest
+          .fn()
+          .mockImplementation((cb: any) => Promise.resolve(cb(mockForkedEm))),
+      };
+
+      mockEntityManager.fork.mockReturnValue(mockForkedEm as any);
+
+      const result = await suppliersStrategy.cleanUpHotels();
+
+      expect(mockEntityManager.fork).toHaveBeenCalledTimes(1);
+      expect(mockForkedEm.transactional).toHaveBeenCalledTimes(1);
+      expect(mockForkedEm.createQueryBuilder).toHaveBeenCalledWith(Hotel, 'h');
+      expect(mockForkedEm.leftJoin).toHaveBeenCalledWith('h.suppliers', 's');
+      expect(mockForkedEm.where).toHaveBeenCalledWith('s.hotel IS NULL');
+      expect(mockForkedEm.nativeDelete).toHaveBeenCalledWith(Hotel, {
+        id: { $in: ['orphan1', 'orphan2'] },
+      });
+      expect(result).toBe(2);
+    });
+
+    it('should return 0 when no hotels need cleanup', async () => {
+      const mockForkedEm = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getResultList: jest.fn().mockResolvedValue([]),
+        nativeDelete: jest.fn(),
+        transactional: jest
+          .fn()
+          .mockImplementation((cb: any) => Promise.resolve(cb(mockForkedEm))),
+      };
+
+      mockEntityManager.fork.mockReturnValue(mockForkedEm as any);
+
+      const result = await suppliersStrategy.cleanUpHotels();
+
+      expect(mockForkedEm.getResultList).toHaveBeenCalledTimes(1);
+      expect(mockForkedEm.nativeDelete).not.toHaveBeenCalled();
+      expect(result).toBe(0);
+    });
+
+    it('should handle database errors gracefully', async () => {
+      const error = new Error('Database connection failed');
+
+      const mockForkedEm = {
+        transactional: jest.fn().mockRejectedValue(error),
+      };
+
+      mockEntityManager.fork.mockReturnValue(mockForkedEm as any);
+
+      await expect(suppliersStrategy.cleanUpHotels()).rejects.toThrow(
+        'Database connection failed',
+      );
+    });
+
+    it('should handle query builder errors', async () => {
+      const queryError = new Error('Query execution failed');
+
+      const mockForkedEm = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getResultList: jest.fn().mockRejectedValue(queryError),
+        transactional: jest
+          .fn()
+          .mockImplementation((cb: any) => Promise.resolve(cb(mockForkedEm))),
+      };
+
+      mockEntityManager.fork.mockReturnValue(mockForkedEm as any);
+
+      await expect(suppliersStrategy.cleanUpHotels()).rejects.toThrow(
+        'Query execution failed',
+      );
+    });
+
+    it('should handle bulk delete errors', async () => {
+      const hotelsToDelete = [{ id: 'hotel1' } as Hotel];
+      const deleteError = new Error('Bulk delete failed');
+
+      const mockForkedEm = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getResultList: jest.fn().mockResolvedValue(hotelsToDelete),
+        nativeDelete: jest.fn().mockRejectedValue(deleteError),
+        transactional: jest
+          .fn()
+          .mockImplementation((cb: any) => Promise.resolve(cb(mockForkedEm))),
+      };
+
+      mockEntityManager.fork.mockReturnValue(mockForkedEm as any);
+
+      await expect(suppliersStrategy.cleanUpHotels()).rejects.toThrow(
+        'Bulk delete failed',
+      );
+    });
+
+    it('should use proper transaction isolation', async () => {
+      const mockForkedEm = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getResultList: jest.fn().mockResolvedValue([]),
+        transactional: jest
+          .fn()
+          .mockImplementation((cb: any) => Promise.resolve(cb(mockForkedEm))),
+      };
+
+      mockEntityManager.fork.mockReturnValue(mockForkedEm as any);
+
+      await suppliersStrategy.cleanUpHotels();
+
+      expect(mockEntityManager.fork).toHaveBeenCalledTimes(1);
+      expect(mockForkedEm.transactional).toHaveBeenCalledTimes(1);
+      expect(mockForkedEm.transactional).toHaveBeenCalledWith(
+        expect.any(Function),
+      );
+    });
+
+    it('should handle large number of hotels efficiently', async () => {
+      const largeHotelList = Array.from({ length: 1000 }, (_, i) => ({
+        id: `hotel-${i}`,
+        name: `Hotel ${i}`,
+      })) as Hotel[];
+
+      const mockForkedEm = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getResultList: jest.fn().mockResolvedValue(largeHotelList),
+        nativeDelete: jest.fn().mockResolvedValue(1000),
+        transactional: jest
+          .fn()
+          .mockImplementation((cb: any) => Promise.resolve(cb(mockForkedEm))),
+      };
+
+      mockEntityManager.fork.mockReturnValue(mockForkedEm as any);
+
+      const result = await suppliersStrategy.cleanUpHotels();
+
+      expect(result).toBe(1000);
+      expect(mockForkedEm.nativeDelete).toHaveBeenCalledWith(Hotel, {
+        id: { $in: largeHotelList.map((h) => h.id) },
+      });
     });
   });
 

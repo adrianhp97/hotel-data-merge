@@ -40,6 +40,7 @@ describe('AcmeStrategy', () => {
       findOne: jest.fn(),
       find: jest.fn(),
       flush: jest.fn(),
+      upsert: jest.fn(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -100,6 +101,10 @@ describe('AcmeStrategy', () => {
           add: jest.fn(),
           getItems: jest.fn().mockReturnValue([]),
         },
+        suppliers: {
+          add: jest.fn(),
+          getItems: jest.fn().mockReturnValue([]),
+        },
       } as any;
 
       mockAmenities = [
@@ -156,6 +161,10 @@ describe('AcmeStrategy', () => {
           country: 'Singapore',
         },
         amenities: {
+          add: jest.fn(),
+          getItems: jest.fn().mockReturnValue([]),
+        },
+        suppliers: {
           add: jest.fn(),
           getItems: jest.fn().mockReturnValue([]),
         },
@@ -279,6 +288,10 @@ describe('AcmeStrategy', () => {
           ({
             ...data,
             amenities:
+              entity === Hotel
+                ? { add: jest.fn(), getItems: () => [] }
+                : undefined,
+            suppliers:
               entity === Hotel
                 ? { add: jest.fn(), getItems: () => [] }
                 : undefined,
