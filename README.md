@@ -134,7 +134,7 @@ The application will be available at `http://localhost:3000`
 ### Hotels
 - `GET /hotels` - Get paginated list of hotels
   - Query parameters:
-    - `hotel_ids[]`: Filter by specific hotel IDs
+    - `hotel_ids`: Filter by specific hotel IDs
     - `destination_id`: Filter by destination ID
     - `page`: Page number (default: 1)
     - `limit`: Items per page (default: 10, max: 100)
@@ -321,7 +321,7 @@ This solution addresses all the specified requirements:
 - **Best Data Selection**: Implements intelligent merging logic prioritizing longer descriptions, more complete address information, and comprehensive amenities
 
 #### **Requirement 2: API endpoint with filtering**
-- **Endpoint**: `GET /hotels` accepts `destination_id` and `hotel_ids[]` parameters
+- **Endpoint**: `GET /hotels` accepts `destination_id` and `hotel_ids` parameters
 - **Unique Results**: Hotels are deduplicated and merged based on hotel IDs
 - **Response Format**: Returns data in the exact format specified in requirements
 
