@@ -240,15 +240,40 @@ describe('AcmeStrategy', () => {
   });
 
   describe('loads', () => {
-    it('should flush all hotels', async () => {
-      const mockHotels = [{ id: 'hotel1' } as Hotel, { id: 'hotel2' } as Hotel];
+    it('should flush all hotels and create supplier relationships', async () => {
+      const mockHotels = [
+        { 
+          id: 'hotel1', 
+          suppliers: { add: jest.fn() } 
+        } as any, 
+        { 
+          id: 'hotel2', 
+          suppliers: { add: jest.fn() } 
+        } as any
+      ];
 
+      const mockSupplier = { supplier: 'acme', hotel: mockHotels[0] };
+      
       mockEntityManager.flush.mockResolvedValue(undefined);
+      mockEntityManager.upsert.mockResolvedValue(mockSupplier as any);
 
       const result = await strategy.loads(mockHotels, mockEntityManager);
 
-      expect(mockEntityManager.flush).toHaveBeenCalledTimes(2);
+      expect(mockEntityManager.flush).toHaveBeenCalledTimes(2); // Once before suppliers, once after
+      expect(mockEntityManager.upsert).toHaveBeenCalledTimes(2);
+      expect(mockHotels[0].suppliers.add).toHaveBeenCalledWith(mockSupplier);
+      expect(mockHotels[1].suppliers.add).toHaveBeenCalledWith(mockSupplier);
       expect(result).toEqual(mockHotels);
+    });
+
+    it('should handle empty hotel array', async () => {
+      mockEntityManager.flush.mockResolvedValue(undefined);
+
+      const result = await strategy.loads([], mockEntityManager);
+
+      expect(mockEntityManager.flush).toHaveBeenCalledTimes(2); // Still flushes twice
+      expect(mockEntityManager.upsert).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
     });
   });
 

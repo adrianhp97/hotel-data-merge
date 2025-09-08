@@ -150,22 +150,28 @@ export class PatagoniaStrategy implements SupplierExtractorStrategy {
       em.persist(amenity);
     }
 
-    const patagoniaSupplier = await em.upsert(HotelSupplier, {
-      supplier: 'patagonia',
-      hotel,
-    });
-    hotel.suppliers.add(patagoniaSupplier);
-
     em.persist(hotel);
     return hotel;
   }
 
   async loads(data: Hotel[], em: SqlEntityManager): Promise<Hotel[]> {
     const results: Hotel[] = [];
+    
+    // First, flush all hotels to ensure they exist in database
+    await em.flush();
+    
+    // Then create supplier relationships
     for (const hotel of data) {
-      await em.flush();
+      const patagoniaSupplier = await em.upsert(HotelSupplier, {
+        supplier: 'patagonia',
+        hotel,
+      });
+      hotel.suppliers.add(patagoniaSupplier);
       results.push(hotel);
     }
+    
+    // Final flush for supplier relationships
+    await em.flush();
     return results;
   }
 

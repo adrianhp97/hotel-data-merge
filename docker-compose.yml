@@ -12,8 +12,6 @@ services:
       - /app/node_modules
     depends_on:
       - db
-    environment:
-      DATABASE_URL: postgresql://user:password@db:5435/hotel-management
 
   db:
     image: postgres:15
