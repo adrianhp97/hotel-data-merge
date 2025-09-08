@@ -240,6 +240,47 @@ npm run schema:create
 npm run migration:up
 ```
 
+### Manual Synonym Handling
+
+After the initial data population from suppliers, manual database intervention may be required to handle synonym considerations:
+
+#### **Common Synonym Issues:**
+- **Amenity Variations**: Different suppliers may use different terms for identical amenities
+  - Example: `"Wi-Fi"`, `"WiFi"`, `"Internet"`, `"Wireless Internet"`
+  - Example: `"Pool"`, `"Swimming Pool"`, `"Outdoor Pool"`
+
+#### **Manual Database Operations:**
+```sql
+-- Example: Map WiFi-related amenity synonyms
+UPDATE amenity SET synonyms = ARRAY['WiFi', 'Internet', 'Wireless Internet', 'Free WiFi']
+WHERE name = 'Wi-Fi';
+
+-- Example: Add hotel name synonyms
+UPDATE hotel SET synonyms = ARRAY['Standard Hotel & Resort', 'The Standard Hotel']
+WHERE name = 'Standard Hotel';
+
+-- Example: Map destination name synonyms
+UPDATE destination SET synonyms = ARRAY['Singapore City', 'Singapore, Singapore', 'SG']
+WHERE name = 'Singapore';
+
+-- Example: Query to find potential synonyms for review
+SELECT name, COUNT(*) as occurrences
+FROM amenity 
+WHERE LOWER(name) LIKE '%wifi%' OR LOWER(name) LIKE '%internet%'
+GROUP BY name
+ORDER BY occurrences DESC;
+```
+
+#### **Recommended Synonym Management Process:**
+1. **Data Audit**: After initial data load, audit the database for potential synonyms
+2. **Identification**: Use SQL queries to find similar amenities, locations, or hotel names
+3. **Standardization**: Choose canonical names for each concept
+4. **Update Operations**: Use SQL UPDATE statements to consolidate synonyms
+5. **Verification**: Verify data consistency after synonym consolidation
+6. **Documentation**: Document all synonym mappings for future reference
+
+> **⚠️ Important**: Always backup your database before performing manual synonym consolidation operations.
+
 ## 📁 Project Structure
 
 ```
@@ -570,6 +611,12 @@ Each supplier strategy implements three phases:
 - **Deduplication**: Remove duplicate amenities and images based on content
 - **Validation**: Ensure required fields are present and valid
 - **Sanitization**: Clean HTML/special characters from text fields
+
+#### **Synonym Considerations:**
+- **Amenity Synonyms**: Different suppliers may use different terms for the same amenities (e.g., "Wi-Fi" vs "WiFi" vs "Internet", "Pool" vs "Swimming Pool")
+- **Location Names**: Suppliers might use variations of location names or addresses
+- **Hotel Features**: Similar hotel features may be described differently across suppliers
+- **Manual Database Handling**: After initial data population, synonym mapping requires manual intervention in the database to ensure data consistency and proper deduplication
 
 ### 🚀 Performance Optimizations
 
