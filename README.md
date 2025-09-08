@@ -1,98 +1,285 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Hotel Data Merge
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS application for merging and managing hotel data from multiple suppliers.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📋 Table of Contents
 
-## Description
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Quick Start with Docker Compose](#quick-start-with-docker-compose)
+- [Manual Setup](#manual-setup)
+- [Environment Variables](#environment-variables)
+- [API Endpoints](#api-endpoints)
+- [Development](#development)
+- [Testing](#testing)
+- [Database Operations](#database-operations)
+- [Project Structure](#project-structure)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🎯 Overview
 
-## Project setup
+This application aggregates hotel data from multiple suppliers (ACME, Patagonia, Paperflies) and provides a unified API for accessing hotel information with features like:
 
+- Data merging from multiple suppliers
+- Scheduled data processing
+- RESTful API for hotel queries
+- Database migrations and seeding
+- Comprehensive test coverage
+
+## 📋 Prerequisites
+
+- **Docker & Docker Compose** (recommended) OR
+- **Node.js** (v18+ or v20+)
+- **PostgreSQL** (v15+)
+- **npm** or **yarn**
+
+## 🚀 Quick Start with Docker Compose
+
+### 1. Clone the repository
 ```bash
-$ npm install
+git clone <repository-url>
+cd hotel-data-merge
 ```
 
-## Compile and run the project
-
+### 2. Start the application
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+docker-compose up --build
 ```
 
-## Run tests
+This will:
+- Build the application container
+- Start PostgreSQL database
+- Run database migrations
+- Start the application on `http://localhost:3000`
 
+### 3. Stop the application
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker-compose down
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+### 4. Reset everything (including database data)
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker-compose down -v
+docker-compose up --build
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 🔧 Manual Setup
 
-## Resources
+### 1. Clone and install dependencies
+```bash
+git clone <repository-url>
+cd hotel-data-merge
+npm install
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+### 2. Set up PostgreSQL database
+Ensure PostgreSQL is running and create a database:
+```sql
+CREATE DATABASE hotel_management;
+CREATE USER hotel_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE hotel_management TO hotel_user;
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 3. Configure environment variables
+Create a `.env` file in the root directory:
+```env
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=hotel_user
+DB_PASSWORD=your_password
+DB_NAME=hotel_management
 
-## Support
+# Optional: Supplier API URLs (defaults provided)
+ACME_BASE_URL=https://5f2be0b4ffc88500167b85a0.mockapi.io/suppliers/acme
+PATAGONIA_BASE_URL=https://5f2be0b4ffc88500167b85a0.mockapi.io/suppliers/patagonia
+PAPERFLIES_BASE_URL=https://5f2be0b4ffc88500167b85a0.mockapi.io/suppliers/paperflies
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Environment
+NODE_ENV=development
+```
 
-## Stay in touch
+### 4. Run database migrations
+```bash
+npm run migration:up
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### 5. Start the application
+```bash
+# Development mode with hot reload
+npm run start:dev
 
-## License
+# Production mode
+npm run build
+npm run start:prod
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+The application will be available at `http://localhost:3000`
+
+## 🔐 Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DB_HOST` | ✅ | `localhost` | Database host |
+| `DB_PORT` | ✅ | `5432` | Database port |
+| `DB_USERNAME` | ✅ | - | Database username |
+| `DB_PASSWORD` | ✅ | - | Database password |
+| `DB_NAME` | ✅ | `hotel-management` | Database name |
+| `NODE_ENV` | ❌ | `development` | Environment mode |
+| `ACME_BASE_URL` | ❌ | Mock API URL | ACME supplier API endpoint |
+| `PATAGONIA_BASE_URL` | ❌ | Mock API URL | Patagonia supplier API endpoint |
+| `PAPERFLIES_BASE_URL` | ❌ | Mock API URL | Paperflies supplier API endpoint |
+
+## 🔌 API Endpoints
+
+### Hotels
+- `GET /hotels` - Get paginated list of hotels
+  - Query parameters:
+    - `hotel_ids[]`: Filter by specific hotel IDs
+    - `destination_id`: Filter by destination ID
+    - `page`: Page number (default: 1)
+    - `limit`: Items per page (default: 10, max: 100)
+
+Example:
+```bash
+# Get all hotels
+curl "http://localhost:3000/hotels"
+
+# Get hotels with pagination
+curl "http://localhost:3000/hotels?page=2&limit=5"
+
+# Filter by destination
+curl "http://localhost:3000/hotels?destination_id=5432"
+
+# Filter by hotel IDs
+curl "http://localhost:3000/hotels?hotel_ids[]=iJhz&hotel_ids[]=SjyX"
+```
+
+### Data Processing
+- `POST /scheduler/trigger` - Manually trigger data processing from suppliers
+
+## 💻 Development
+
+### Available Scripts
+
+```bash
+# Development
+npm run start:dev      # Start with hot reload
+npm run start:debug    # Start in debug mode
+
+# Building
+npm run build          # Build the application
+npm run start:prod     # Run production build
+
+# Code Quality
+npm run lint           # Fix linting issues
+npm run lint:check     # Check linting without fixing
+npm run format         # Format code with Prettier
+
+# Testing
+npm run test           # Run unit tests
+npm run test:watch     # Run tests in watch mode
+npm run test:cov       # Run tests with coverage
+npm run test:e2e       # Run end-to-end tests
+npm run test:debug     # Debug tests
+```
+
+### Database Scripts
+
+```bash
+# Migrations
+npm run migration:create  # Create new migration
+npm run migration:up      # Apply migrations
+npm run migration:down    # Rollback migrations
+
+# Schema
+npm run schema:create     # Create database schema
+npm run schema:drop       # Drop database schema
+
+# Cache
+npm run cache:clear       # Clear MikroORM cache
+```
+
+## 🧪 Testing
+
+### Unit Tests
+```bash
+npm run test
+npm run test:cov  # with coverage
+```
+
+### E2E Tests
+```bash
+npm run test:e2e
+```
+
+### CI/CD
+The project includes GitHub Actions workflows for:
+- Running tests on Node.js 18.x and 20.x
+- Docker image building
+- Code coverage reporting
+
+## 🗄️ Database Operations
+
+### Running Migrations
+```bash
+# Apply all pending migrations
+npm run migration:up
+
+# Rollback last migration
+npm run migration:down
+
+# Create a new migration
+npm run migration:create
+```
+
+### Database Reset
+```bash
+# Drop and recreate schema
+npm run schema:drop
+npm run schema:create
+npm run migration:up
+```
+
+## 📁 Project Structure
+
+```
+src/
+├── api/                 # API controllers and modules
+│   ├── hotels/         # Hotels API endpoints
+│   └── scheduler/      # Data processing endpoints
+├── config/             # Configuration files
+├── constants/          # Application constants
+├── db/
+│   ├── entities/       # Database entities
+│   ├── migrations/     # Database migrations
+│   └── seeders/        # Database seeders
+├── dto/                # Data Transfer Objects
+├── pipes/              # Custom pipes
+├── provider/           # External data providers
+│   └── suppliers/      # Supplier integrations
+├── scheduler/          # Scheduled tasks
+├── transformers/       # Data transformers
+└── utils/              # Utility functions
+
+test/                   # E2E tests
+docker-compose.yml      # Docker Compose configuration
+Dockerfile             # Docker configuration
+mikro-orm.config.ts    # Database configuration
+```
+
+## 🏗️ Architecture
+
+The application follows a modular architecture with:
+
+- **API Layer**: RESTful endpoints using NestJS controllers
+- **Service Layer**: Business logic and data processing
+- **Data Layer**: MikroORM entities and repositories
+- **Provider Layer**: External supplier integrations
+- **Scheduler**: Automated data processing tasks
+
+## 📝 Notes
+
+- The application uses scheduled tasks to periodically fetch and merge data from suppliers
+- Data is automatically merged based on hotel IDs, with intelligent handling of conflicting information
+- The API supports pagination and filtering for efficient data retrieval
+- All database operations are wrapped in transactions for data consistency
