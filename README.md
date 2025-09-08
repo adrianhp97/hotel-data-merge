@@ -151,7 +151,7 @@ curl "http://localhost:3000/hotels?page=2&limit=5"
 curl "http://localhost:3000/hotels?destination_id=5432"
 
 # Filter by hotel IDs
-curl "http://localhost:3000/hotels?hotel_ids[]=iJhz&hotel_ids[]=SjyX"
+curl "http://localhost:3000/hotels?hotel_ids=iJhz&hotel_ids=SjyX"
 ```
 
 ### Data Processing

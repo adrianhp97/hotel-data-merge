@@ -26,6 +26,8 @@ export class HotelsService {
   ): Promise<PaginatedResponse<HotelDTO>> {
     const filter: FilterQuery<Hotel> = {};
 
+    console.log('parameter', parameter);
+
     if (parameter.destination_id) {
       filter.destination = parameter.destination_id;
     }

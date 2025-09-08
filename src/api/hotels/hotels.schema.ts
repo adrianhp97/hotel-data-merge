@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
 export const getHotelsParameterSchema = z.object({
-  hotel_ids: z.array(z.string()).optional(),
+  hotel_ids: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) => (Array.isArray(val) ? val : [val]))
+    .optional(),
   destination_id: z.coerce.number().int().positive().optional(),
   page: z.coerce.number().int().positive().min(1).default(1),
   limit: z.coerce.number().int().positive().min(1).max(100).default(10),
