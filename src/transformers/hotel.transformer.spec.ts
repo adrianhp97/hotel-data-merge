@@ -500,5 +500,165 @@ describe('HotelTransformer', () => {
       expect(originalImages.rooms).toHaveLength(2);
       expect(originalBookingConditions).toHaveLength(2);
     });
+
+    it('should remove synonym duplicates from amenities', () => {
+      const amenitiesWithSynonyms = [
+        {
+          id: 1,
+          name: 'Wi-Fi',
+          category: 'general' as AmenityCategory,
+          synonyms: ['WiFi', 'wireless internet', 'internet'],
+        },
+        {
+          id: 2,
+          name: 'WiFi',
+          category: 'general' as AmenityCategory,
+          synonyms: [],
+        },
+        {
+          id: 3,
+          name: 'Swimming Pool',
+          category: 'general' as AmenityCategory,
+          synonyms: ['pool', 'outdoor pool'],
+        },
+        {
+          id: 4,
+          name: 'pool',
+          category: 'general' as AmenityCategory,
+          synonyms: [],
+        },
+        {
+          id: 5,
+          name: 'Air Conditioning',
+          category: 'room' as AmenityCategory,
+          synonyms: ['aircon', 'AC'],
+        },
+        {
+          id: 6,
+          name: 'TV',
+          category: 'room' as AmenityCategory,
+          synonyms: ['television', 'flat screen'],
+        },
+        {
+          id: 7,
+          name: 'television',
+          category: 'room' as AmenityCategory,
+          synonyms: [],
+        },
+      ] as unknown as Amenity[];
+
+      mockHotel = {
+        id: 'synonym-test',
+        destination: mockDestination,
+        name: 'Hotel With Synonym Amenities',
+        location: { city: 'Test', country: 'Test' },
+        amenities: {
+          getItems: jest.fn().mockReturnValue(amenitiesWithSynonyms),
+        } as any,
+      } as unknown as Hotel;
+
+      const result = HotelTransformer.toDTO(mockHotel);
+
+      // Should remove synonyms and keep primary amenities
+      expect(result.amenities.general).toEqual(['Wi-Fi', 'Swimming Pool']);
+      expect(result.amenities.room).toEqual(['Air Conditioning', 'TV']);
+      
+      // Should not contain synonyms
+      expect(result.amenities.general).not.toContain('WiFi');
+      expect(result.amenities.general).not.toContain('pool');
+      expect(result.amenities.room).not.toContain('television');
+    });
+
+    it('should handle case insensitive synonym removal', () => {
+      const amenitiesWithCaseSynonyms = [
+        {
+          id: 1,
+          name: 'Wi-Fi',
+          category: 'general' as AmenityCategory,
+          synonyms: ['wifi', 'WIFI', 'Wireless Internet'],
+        },
+        {
+          id: 2,
+          name: 'wifi',
+          category: 'general' as AmenityCategory,
+          synonyms: [],
+        },
+        {
+          id: 3,
+          name: 'WIFI',
+          category: 'general' as AmenityCategory,
+          synonyms: [],
+        },
+        {
+          id: 4,
+          name: 'Wireless Internet',
+          category: 'general' as AmenityCategory,
+          synonyms: [],
+        },
+      ] as unknown as Amenity[];
+
+      mockHotel = {
+        id: 'case-synonym-test',
+        destination: mockDestination,
+        name: 'Hotel With Case Sensitive Synonyms',
+        location: { city: 'Test', country: 'Test' },
+        amenities: {
+          getItems: jest.fn().mockReturnValue(amenitiesWithCaseSynonyms),
+        } as any,
+      } as unknown as Hotel;
+
+      const result = HotelTransformer.toDTO(mockHotel);
+
+      // Should only keep the primary amenity (first one with synonyms)
+      expect(result.amenities.general).toEqual(['Wi-Fi']);
+      expect(result.amenities.general).not.toContain('wifi');
+      expect(result.amenities.general).not.toContain('WIFI');
+      expect(result.amenities.general).not.toContain('Wireless Internet');
+    });
+
+    it('should handle amenities without synonyms correctly', () => {
+      const amenitiesWithoutSynonyms = [
+        {
+          id: 1,
+          name: 'Wi-Fi',
+          category: 'general' as AmenityCategory,
+          synonyms: [],
+        },
+        {
+          id: 2,
+          name: 'Swimming Pool',
+          category: 'general' as AmenityCategory,
+          synonyms: [],
+        },
+        {
+          id: 3,
+          name: 'Gym',
+          category: 'general' as AmenityCategory,
+          synonyms: [],
+        },
+        {
+          id: 4,
+          name: 'TV',
+          category: 'room' as AmenityCategory,
+          synonyms: [],
+        },
+      ] as unknown as Amenity[];
+
+      mockHotel = {
+        id: 'no-synonyms-test',
+        destination: mockDestination,
+        name: 'Hotel Without Synonyms',
+        location: { city: 'Test', country: 'Test' },
+        amenities: {
+          getItems: jest.fn().mockReturnValue(amenitiesWithoutSynonyms),
+        } as any,
+      } as unknown as Hotel;
+
+      const result = HotelTransformer.toDTO(mockHotel);
+
+      // Should return all amenities as they have no duplicates
+      expect(result.amenities.general).toEqual(['Wi-Fi', 'Swimming Pool', 'Gym']);
+      expect(result.amenities.room).toEqual(['TV']);
+    });
   });
 });
