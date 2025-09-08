@@ -286,19 +286,76 @@ This solution addresses all the specified requirements:
 
 ### 🏗️ Architecture Decisions & Thought Process
 
-#### **1. Modular Strategy Pattern**
+#### **1. Supplier Integration Architecture**
+
+Two main approaches were considered for handling multiple suppliers with different data formats:
+
+##### **Option 1: Dynamic Database-Driven Configuration** 
+```
+Database Tables:
+├── suppliers (id, name, api_url, active)
+├── field_mappings (supplier_id, source_field, target_field, transformation_rule)
+├── data_processors (supplier_id, processor_type, config)
+└── Generic ETL Service
+```
+
+**Approach**: Store supplier configurations and field mappings in database tables, use a generic service to dynamically process any supplier based on configuration.
+
+**Pros:**
+- **Runtime Flexibility**: Add new suppliers without code deployment
+- **Non-technical Configuration**: Business users can modify mappings via admin interface
+- **Uniform Processing**: Single generic ETL service handles all suppliers
+- **Dynamic Rules**: Change data merging rules without code changes
+- **Audit Trail**: Track configuration changes in database
+
+**Cons:**
+- **Complex Debugging**: Harder to debug dynamic mapping issues
+- **Performance Overhead**: Runtime interpretation of mappings vs compile-time optimization
+- **Type Safety Loss**: Lose TypeScript compile-time validation
+- **Testing Complexity**: Harder to unit test dynamic configurations
+- **Maintenance Burden**: Complex configuration management and validation needed
+
+##### **Option 2: Strategy Pattern (Chosen Implementation)**
 ```
 providers/suppliers/strategy/
 ├── acme.strategy.ts
-├── paperflies.strategy.ts
+├── paperflies.strategy.ts  
 ├── patagonia.strategy.ts
-└── suppliers.strategy.ts (orchestrator)
+├── suppliers.strategy.ts (orchestrator)
+└── suppliers.interface.ts (contract)
 ```
 
-**Why**: Each supplier has different data formats and structures. The Strategy pattern allows:
-- **Maintainability**: Easy to add/modify suppliers without affecting others
-- **Testability**: Each strategy can be unit tested independently
-- **Scalability**: New suppliers can be added by implementing the `SupplierExtractorStrategy` interface
+**Approach**: Each supplier has a dedicated strategy class implementing a common interface, with supplier-specific logic hardcoded.
+
+**Pros:**
+- **Type Safety**: Full TypeScript compile-time validation
+- **Easy Debugging**: Stack traces point to specific strategy code
+- **Performance**: No runtime interpretation overhead
+- **Testability**: Each strategy independently unit testable
+- **IDE Support**: Full autocomplete and refactoring support
+- **Code Clarity**: Explicit logic for each supplier's data transformation
+
+**Cons:**
+- **Deployment Required**: New suppliers require code deployment
+- **Developer Dependency**: Only developers can add new suppliers
+- **Code Duplication**: Some common logic might be repeated across strategies
+
+##### **Decision Rationale:**
+
+**Chosen: Strategy Pattern** for the following reasons:
+
+1. **Data Quality Priority**: Hotel data quality is critical; compile-time validation catches more errors than runtime validation
+2. **Debugging Complexity**: Supplier data issues are common; explicit code makes debugging significantly easier
+3. **Performance Requirements**: Real-time API responses require optimal performance; no runtime interpretation overhead
+4. **Developer Preference**: Personal preference for type-safe, explicit implementations over configuration-driven approaches
+5. **Supplier Stability**: Hotel suppliers change infrequently, so deployment flexibility less critical
+6. **Testing Confidence**: Unit testing explicit logic provides higher confidence than configuration testing
+
+**Trade-off Summary:**
+```
+Strategy Pattern: Chose developer efficiency + type safety over runtime flexibility
+Database Config: Would provide business flexibility at cost of technical complexity
+```
 
 #### **2. ETL (Extract, Transform, Load) Pipeline**
 Each supplier strategy implements three phases:
