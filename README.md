@@ -41,6 +41,20 @@ cd hotel-data-merge
 ```
 
 ### 2. Start the application
+Set the environment variable first ubsude .env file (this is the minimum)
+```bash
+NODE_ENV=local
+
+# Database Config
+DB_HOST=db
+DB_PORT=5432
+DB_USERNAME=user
+DB_PASSWORD=password
+DB_NAME=hotel-management
+
+```
+
+And then run the docker-compose
 ```bash
 docker-compose up --build
 ```
@@ -48,15 +62,21 @@ docker-compose up --build
 This will:
 - Build the application container
 - Start PostgreSQL database
-- Run database migrations
 - Start the application on `http://localhost:3000`
 
-### 3. Stop the application
+### 3. Run database migrations (if needed)
+If migrations haven't been applied automatically, run them manually:
+```bash
+# Run migrations in the Docker container
+docker-compose exec app npm run migration:up
+```
+
+### 4. Stop the application
 ```bash
 docker-compose down
 ```
 
-### 4. Reset everything (including database data)
+### 5. Reset everything (including database data)
 ```bash
 docker-compose down -v
 docker-compose up --build
