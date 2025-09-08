@@ -197,16 +197,19 @@ describe('SuppliersStrategy', () => {
     it('should process suppliers in the correct order', async () => {
       const callOrder: string[] = [];
 
+      // eslint-disable-next-line @typescript-eslint/require-await
       mockAcmeStrategy.fetchData.mockImplementation(async () => {
         callOrder.push('acme');
         return [];
       });
 
+      // eslint-disable-next-line @typescript-eslint/require-await
       mockPaperfliesStrategy.fetchData.mockImplementation(async () => {
         callOrder.push('paperflies');
         return [];
       });
 
+      // eslint-disable-next-line @typescript-eslint/require-await
       mockPatagoniaStrategy.fetchData.mockImplementation(async () => {
         callOrder.push('patagonia');
         return [];

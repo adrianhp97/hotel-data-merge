@@ -137,10 +137,7 @@ describe('PatagoniaStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(
-        mockPatagoniaRawHotel,
-        mockEntityManager,
-      );
+      await strategy.transform(mockPatagoniaRawHotel, mockEntityManager);
 
       expect(mockEntityManager.create).toHaveBeenCalledWith(Destination, {
         id: 5432,
@@ -243,10 +240,7 @@ describe('PatagoniaStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(
-        rawHotelWithoutAmenities,
-        mockEntityManager,
-      );
+      await strategy.transform(rawHotelWithoutAmenities, mockEntityManager);
 
       expect(mockEntityManager.find).toHaveBeenCalledWith(Amenity, {
         name: { $in: [] },

@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaperfliesStrategy } from './paperflies.strategy';
 import { SqlEntityManager } from '@mikro-orm/postgresql';
-import { ConfigService } from '@nestjs/config';
 import supplierConfig from 'src/config/supplier.config';
 import { Hotel } from 'src/db/entities/hotel.entity';
 import { Destination } from 'src/db/entities/destination.entity';
@@ -47,7 +46,6 @@ const mockConfig = {
 describe('PaperfliesStrategy', () => {
   let strategy: PaperfliesStrategy;
   let mockEntityManager: jest.Mocked<SqlEntityManager>;
-  let mockConfigService: jest.Mocked<ConfigService>;
 
   beforeEach(async () => {
     mockEntityManager = {
@@ -59,10 +57,6 @@ describe('PaperfliesStrategy', () => {
       find: jest.fn(),
       flush: jest.fn(),
       upsert: jest.fn(),
-    } as any;
-
-    mockConfigService = {
-      get: jest.fn(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -299,7 +293,6 @@ describe('PaperfliesStrategy', () => {
 
   describe('fetchData', () => {
     it('should execute the complete data pipeline within a transaction', async () => {
-      const mockTransactionCallback = jest.fn();
       const mockForkedEm = {
         transactional: jest.fn().mockImplementation((callback) => {
           return callback(mockEntityManager);

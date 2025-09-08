@@ -56,7 +56,7 @@ describe('Hotels Pagination', () => {
 
     // Verify count query
     expect(mockHotelRepository.count).toHaveBeenCalledWith({});
-    
+
     // Verify paginated query
     expect(mockHotelRepository.find).toHaveBeenCalledWith(
       {},
@@ -107,11 +107,11 @@ describe('Hotels Pagination', () => {
   });
 
   it('should handle filtering with pagination', async () => {
-    const parameter: GetHotelsParameterDTO = { 
-      destination_id: 123, 
+    const parameter: GetHotelsParameterDTO = {
+      destination_id: 123,
       hotel_ids: ['hotel1', 'hotel2'],
-      page: 1, 
-      limit: 5 
+      page: 1,
+      limit: 5,
     };
     mockHotelRepository.count.mockResolvedValue(2);
     mockHotelRepository.find.mockResolvedValue([]);
@@ -125,13 +125,10 @@ describe('Hotels Pagination', () => {
     };
 
     expect(mockHotelRepository.count).toHaveBeenCalledWith(expectedFilter);
-    expect(mockHotelRepository.find).toHaveBeenCalledWith(
-      expectedFilter,
-      {
-        populate: ['amenities', 'destination'],
-        limit: 5,
-        offset: 0,
-      },
-    );
+    expect(mockHotelRepository.find).toHaveBeenCalledWith(expectedFilter, {
+      populate: ['amenities', 'destination'],
+      limit: 5,
+      offset: 0,
+    });
   });
 });

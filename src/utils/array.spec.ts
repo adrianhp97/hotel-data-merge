@@ -35,7 +35,7 @@ describe('Array Utilities', () => {
       const result = sortByLengthAndLexicographically(input);
 
       // 'BANANA' and 'banana' are length 6, 'Apple' and 'apple' are length 5
-      // First by length (desc): BANANA, banana (6) then Apple, apple (5)  
+      // First by length (desc): BANANA, banana (6) then Apple, apple (5)
       // Then alphabetically within same length using localeCompare: 'banana' < 'BANANA'
       expect(result).toEqual(['banana', 'BANANA', 'apple', 'Apple']);
     });

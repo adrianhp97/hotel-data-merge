@@ -9,7 +9,6 @@ import { Destination } from 'src/db/entities/destination.entity';
 import { Amenity, AmenityCategory } from 'src/db/entities/amenity.entity';
 import { HotelDTO } from 'src/dto/hotel.dto';
 import { HotelTransformer } from 'src/transformers/hotel.transformer';
-import { PaginatedResponse } from 'src/dto/paginated-response.dto';
 
 // Mock HotelTransformer as it's a static class
 jest.mock('src/transformers/hotel.transformer');
@@ -186,7 +185,9 @@ describe('HotelsService', () => {
       processData: jest.fn(),
     } as any;
 
-    mockHotelTransformer = HotelTransformer as jest.Mocked<typeof HotelTransformer>;
+    mockHotelTransformer = HotelTransformer as jest.Mocked<
+      typeof HotelTransformer
+    >;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -221,10 +222,12 @@ describe('HotelsService', () => {
 
   describe('getHotels', () => {
     beforeEach(() => {
-      mockHotelTransformer.toDTO = jest.fn().mockImplementation((hotel: Hotel) => {
-        const index = mockHotels.findIndex((h) => h.id === hotel.id);
-        return mockHotelDTOs[index] || mockHotelDTOs[0];
-      });
+      mockHotelTransformer.toDTO = jest
+        .fn()
+        .mockImplementation((hotel: Hotel) => {
+          const index = mockHotels.findIndex((h) => h.id === hotel.id);
+          return mockHotelDTOs[index] || mockHotelDTOs[0];
+        });
     });
 
     it('should return paginated hotels when no parameters provided', async () => {
@@ -258,13 +261,19 @@ describe('HotelsService', () => {
     });
 
     it('should filter hotels by destination_id', async () => {
-      const parameter: GetHotelsParameterDTO = { destination_id: 5432, page: 1, limit: 10 };
+      const parameter: GetHotelsParameterDTO = {
+        destination_id: 5432,
+        page: 1,
+        limit: 10,
+      };
       mockHotelRepository.count.mockResolvedValue(2);
       mockHotelRepository.find.mockResolvedValue(mockHotels);
 
       const result = await service.getHotels(parameter);
 
-      expect(mockHotelRepository.count).toHaveBeenCalledWith({ destination: 5432 });
+      expect(mockHotelRepository.count).toHaveBeenCalledWith({
+        destination: 5432,
+      });
       expect(mockHotelRepository.find).toHaveBeenCalledWith(
         { destination: 5432 },
         {
@@ -344,13 +353,19 @@ describe('HotelsService', () => {
     });
 
     it('should return empty data when no hotels found', async () => {
-      const parameter: GetHotelsParameterDTO = { destination_id: 9999, page: 1, limit: 10 };
+      const parameter: GetHotelsParameterDTO = {
+        destination_id: 9999,
+        page: 1,
+        limit: 10,
+      };
       mockHotelRepository.count.mockResolvedValue(0);
       mockHotelRepository.find.mockResolvedValue([]);
 
       const result = await service.getHotels(parameter);
 
-      expect(mockHotelRepository.count).toHaveBeenCalledWith({ destination: 9999 });
+      expect(mockHotelRepository.count).toHaveBeenCalledWith({
+        destination: 9999,
+      });
       expect(mockHotelRepository.find).toHaveBeenCalledWith(
         { destination: 9999 },
         {

@@ -33,7 +33,10 @@ describe('SchedulerService', () => {
   describe('handleHourlyDataProcessing', () => {
     it('should process data successfully and log results', async () => {
       const mockResults = [
-        { status: 'fulfilled' as const, value: [{ id: 'hotel1' } as Hotel, { id: 'hotel2' } as Hotel] },
+        {
+          status: 'fulfilled' as const,
+          value: [{ id: 'hotel1' } as Hotel, { id: 'hotel2' } as Hotel],
+        },
         { status: 'fulfilled' as const, value: [{ id: 'hotel3' } as Hotel] },
         { status: 'rejected' as const, reason: new Error('Network error') },
       ];
@@ -41,22 +44,26 @@ describe('SchedulerService', () => {
       mockSuppliersService.processData.mockResolvedValue(mockResults);
 
       const logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
-      const errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
-      const debugSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
+      const errorSpy = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation();
+      const debugSpy = jest
+        .spyOn(Logger.prototype, 'debug')
+        .mockImplementation();
 
       await service.handleHourlyDataProcessing();
 
       expect(mockSuppliersService.processData).toHaveBeenCalledTimes(1);
       expect(logSpy).toHaveBeenCalledWith('Starting hourly data processing...');
       expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Hourly data processing completed')
+        expect.stringContaining('Hourly data processing completed'),
       );
       expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Success: 2, Failed: 1')
+        expect.stringContaining('Success: 2, Failed: 1'),
       );
       expect(errorSpy).toHaveBeenCalledWith(
         'Supplier 2 failed: Error: Network error',
-        expect.any(String)
+        expect.any(String),
       );
       expect(debugSpy).toHaveBeenCalledWith('Supplier 0 processed 2 hotels');
       expect(debugSpy).toHaveBeenCalledWith('Supplier 1 processed 1 hotels');
@@ -71,14 +78,16 @@ describe('SchedulerService', () => {
       mockSuppliersService.processData.mockRejectedValue(error);
 
       const logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
-      const errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+      const errorSpy = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation();
 
       await service.handleHourlyDataProcessing();
 
       expect(logSpy).toHaveBeenCalledWith('Starting hourly data processing...');
       expect(errorSpy).toHaveBeenCalledWith(
         'Critical error during hourly data processing',
-        error.stack
+        error.stack,
       );
 
       logSpy.mockRestore();
@@ -94,7 +103,7 @@ describe('SchedulerService', () => {
 
       expect(mockSuppliersService.processData).toHaveBeenCalledTimes(1);
       expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Success: 0, Failed: 0')
+        expect.stringContaining('Success: 0, Failed: 0'),
       );
 
       logSpy.mockRestore();
@@ -113,7 +122,9 @@ describe('SchedulerService', () => {
 
       await service.triggerDataProcessing();
 
-      expect(logSpy).toHaveBeenCalledWith('Manual data processing trigger initiated...');
+      expect(logSpy).toHaveBeenCalledWith(
+        'Manual data processing trigger initiated...',
+      );
       expect(mockSuppliersService.processData).toHaveBeenCalledTimes(1);
 
       logSpy.mockRestore();
@@ -122,8 +133,8 @@ describe('SchedulerService', () => {
 
   describe('cron scheduling', () => {
     it('should have proper cron decorators', () => {
-      const cronMetadata = Reflect.getMetadata('__cron__', service.constructor);
-      
+      Reflect.getMetadata('__cron__', service.constructor);
+
       // This tests that the cron decorators are properly applied
       // The actual scheduling is handled by NestJS internally
       expect(service.handleHourlyDataProcessing).toBeDefined();

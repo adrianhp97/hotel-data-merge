@@ -76,7 +76,6 @@ describe('AcmeStrategy', () => {
   describe('transform', () => {
     let mockDestination: Destination;
     let mockHotel: Hotel;
-    let mockAmenities: Amenity[];
 
     beforeEach(() => {
       mockDestination = {
@@ -106,12 +105,6 @@ describe('AcmeStrategy', () => {
           getItems: jest.fn().mockReturnValue([]),
         },
       } as any;
-
-      mockAmenities = [
-        { id: 1, name: 'pool', category: 'general' },
-        { id: 2, name: 'businesscenter', category: 'general' },
-        { id: 3, name: 'wifi', category: 'general' },
-      ] as Amenity[];
     });
 
     it('should create new hotel with proper location data', async () => {
@@ -126,10 +119,7 @@ describe('AcmeStrategy', () => {
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(
-        mockAcmeRawHotel,
-        mockEntityManager,
-      );
+      await strategy.transform(mockAcmeRawHotel, mockEntityManager);
 
       expect(mockEntityManager.create).toHaveBeenCalledWith(
         Hotel,
@@ -197,20 +187,14 @@ describe('AcmeStrategy', () => {
       mockEntityManager.create
         .mockReturnValueOnce(mockDestination)
         .mockReturnValueOnce(mockHotel)
-        .mockImplementation(
-          (entity, data: any) =>
-            ({
-              ...data,
-              id: entity === Amenity ? Math.random() : data.id,
-            }) as any,
-        );
+        .mockImplementation((entity, data: any) => ({
+          ...data,
+          id: entity === Amenity ? Math.random() : data.id,
+        }));
 
       mockEntityManager.find.mockResolvedValue([]);
 
-      const result = await strategy.transform(
-        mockAcmeRawHotel,
-        mockEntityManager,
-      );
+      await strategy.transform(mockAcmeRawHotel, mockEntityManager);
 
       expect(mockEntityManager.find).toHaveBeenCalledWith(Amenity, {
         name: {

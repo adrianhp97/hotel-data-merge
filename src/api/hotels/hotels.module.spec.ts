@@ -3,13 +3,11 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { HotelsModule } from './hotels.module';
 import { HotelsController } from './hotels.controller';
 import { HotelsService } from './hotels.service';
-import { Hotel } from 'src/db/entities/hotel.entity';
-import { SuppliersModule } from 'src/provider/suppliers/suppliers.module';
 
 // Mock the dependencies to avoid import issues
 jest.mock('@nestjs/common', () => ({
   ...jest.requireActual('@nestjs/common'),
-  Injectable: jest.fn().mockImplementation((options?: any) => (target: any) => target),
+  Injectable: jest.fn().mockImplementation(() => (target: any) => target),
 }));
 
 jest.mock('@mikro-orm/nestjs', () => ({
@@ -20,7 +18,7 @@ jest.mock('@mikro-orm/nestjs', () => ({
       exports: [],
     }),
   },
-  InjectRepository: jest.fn().mockImplementation(() => (target: any, key: any, index: number) => {}),
+  InjectRepository: jest.fn().mockImplementation(() => () => {}),
 }));
 
 jest.mock('src/provider/suppliers/suppliers.module');
@@ -84,7 +82,8 @@ describe('HotelsModule', () => {
     });
 
     it('should have only one controller', () => {
-      const controllers = Reflect.getMetadata('controllers', HotelsModule) || [];
+      const controllers =
+        Reflect.getMetadata('controllers', HotelsModule) || [];
       expect(controllers).toHaveLength(1);
       expect(controllers[0]).toBe(HotelsController);
     });
@@ -106,7 +105,7 @@ describe('HotelsModule', () => {
     it('should inject HotelsService into HotelsController', () => {
       expect(hotelsController).toBeDefined();
       expect(hotelsService).toBeDefined();
-      
+
       // Verify that the controller can access its service
       expect(typeof hotelsController.getHotels).toBe('function');
     });
@@ -121,10 +120,10 @@ describe('HotelsModule', () => {
         .compile();
 
       expect(testModule).toBeDefined();
-      
+
       const controller = testModule.get<HotelsController>(HotelsController);
       const service = testModule.get<HotelsService>(HotelsService);
-      
+
       expect(controller).toBeDefined();
       expect(service).toBeDefined();
 
@@ -135,7 +134,8 @@ describe('HotelsModule', () => {
   describe('module structure', () => {
     it('should have correct module metadata', () => {
       const imports = Reflect.getMetadata('imports', HotelsModule) || [];
-      const controllers = Reflect.getMetadata('controllers', HotelsModule) || [];
+      const controllers =
+        Reflect.getMetadata('controllers', HotelsModule) || [];
       const providers = Reflect.getMetadata('providers', HotelsModule) || [];
 
       expect(imports).toHaveLength(2); // MikroOrmModule.forFeature and SuppliersModule
@@ -164,7 +164,7 @@ describe('HotelsModule', () => {
         .compile();
 
       await testModule.init();
-      
+
       const controller = testModule.get<HotelsController>(HotelsController);
       expect(controller).toBeDefined();
 
@@ -180,12 +180,12 @@ describe('HotelsModule', () => {
         .compile();
 
       await testModule.init();
-      
+
       // Module should be active
       expect(testModule).toBeDefined();
-      
+
       await testModule.close();
-      
+
       // Module should close without errors
       expect(true).toBe(true); // If we reach here, close was successful
     });
@@ -195,19 +195,19 @@ describe('HotelsModule', () => {
         imports: [HotelsModule],
       })
         .overrideProvider(HotelsService)
-        .useValue({ 
-          getHotels: jest.fn().mockResolvedValue([
-            { id: 'test-hotel', name: 'Test Hotel' }
-          ]) 
+        .useValue({
+          getHotels: jest
+            .fn()
+            .mockResolvedValue([{ id: 'test-hotel', name: 'Test Hotel' }]),
         })
         .compile();
 
       const app = testModule.createNestApplication();
       await app.init();
-      
+
       const controller = app.get<HotelsController>(HotelsController);
       expect(controller).toBeDefined();
-      
+
       await app.close();
     });
   });
@@ -221,7 +221,7 @@ describe('HotelsModule', () => {
           providers: [HotelsService],
           // Missing imports that HotelsService depends on
         }).compile();
-        
+
         // If we reach here without mocking, the test should fail
         // because HotelsService has unresolved dependencies
         expect(true).toBe(false);
@@ -231,14 +231,16 @@ describe('HotelsModule', () => {
       }
     });
 
-    it('should handle circular dependencies detection', async () => {
+    it('should handle circular dependencies detection', () => {
       // Verifying that the module doesn't have circular dependencies
       expect(() => {
         const imports = Reflect.getMetadata('imports', HotelsModule) || [];
         const providers = Reflect.getMetadata('providers', HotelsModule) || [];
-        
+
         // Basic check - no provider should be in imports
-        const hasCircular = providers.some(provider => imports.includes(provider));
+        const hasCircular = providers.some((provider) =>
+          imports.includes(provider),
+        );
         return hasCircular;
       }).not.toThrow();
     });
@@ -247,18 +249,18 @@ describe('HotelsModule', () => {
   describe('performance characteristics', () => {
     it('should compile quickly', async () => {
       const start = Date.now();
-      
+
       const testModule = await Test.createTestingModule({
         imports: [HotelsModule],
       })
         .overrideProvider(HotelsService)
         .useValue({ getHotels: jest.fn() })
         .compile();
-      
+
       const compilationTime = Date.now() - start;
-      
+
       expect(compilationTime).toBeLessThan(5000); // Should compile in less than 5 seconds
-      
+
       await testModule.close();
     });
 
@@ -273,9 +275,9 @@ describe('HotelsModule', () => {
       const start = Date.now();
       await testModule.init();
       const initTime = Date.now() - start;
-      
+
       expect(initTime).toBeLessThan(1000); // Should initialize in less than 1 second
-      
+
       await testModule.close();
     });
   });
