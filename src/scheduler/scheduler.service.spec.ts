@@ -54,9 +54,9 @@ describe('SchedulerService', () => {
       await service.handleHourlyDataProcessing();
 
       expect(mockSuppliersService.processData).toHaveBeenCalledTimes(1);
-      expect(logSpy).toHaveBeenCalledWith('Starting hourly data processing...');
+      expect(logSpy).toHaveBeenCalledWith('Starting data processing...');
       expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Hourly data processing completed'),
+        expect.stringContaining('Data processing completed'),
       );
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining('Success: 2, Failed: 1'),
@@ -84,9 +84,9 @@ describe('SchedulerService', () => {
 
       await service.handleHourlyDataProcessing();
 
-      expect(logSpy).toHaveBeenCalledWith('Starting hourly data processing...');
+      expect(logSpy).toHaveBeenCalledWith('Starting data processing...');
       expect(errorSpy).toHaveBeenCalledWith(
-        'Critical error during hourly data processing',
+        'Critical error during data processing',
         error.stack,
       );
 
