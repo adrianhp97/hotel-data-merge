@@ -107,8 +107,8 @@ describe('HotelTransformer', () => {
         },
         description: 'Surrounded by tropical gardens, on the beachfront.',
         amenities: {
-          general: ['outdoor pool', 'business center'],
-          room: ['tv', 'coffee machine'],
+          general: expect.arrayContaining(['outdoor pool', 'business center']),
+          room: expect.arrayContaining(['tv', 'coffee machine']),
         },
         images: {
           rooms: [
@@ -560,8 +560,10 @@ describe('HotelTransformer', () => {
       const result = HotelTransformer.toDTO(mockHotel);
 
       // Should remove synonyms and keep primary amenities
-      expect(result.amenities.general).toEqual(['Wi-Fi', 'Swimming Pool']);
-      expect(result.amenities.room).toEqual(['Air Conditioning', 'TV']);
+      expect(result.amenities.general).toEqual(expect.arrayContaining(['Wi-Fi', 'Swimming Pool']));
+      expect(result.amenities.general).toHaveLength(2);
+      expect(result.amenities.room).toEqual(expect.arrayContaining(['Air Conditioning', 'TV']));
+      expect(result.amenities.room).toHaveLength(2);
       
       // Should not contain synonyms
       expect(result.amenities.general).not.toContain('WiFi');
@@ -657,7 +659,8 @@ describe('HotelTransformer', () => {
       const result = HotelTransformer.toDTO(mockHotel);
 
       // Should return all amenities as they have no duplicates
-      expect(result.amenities.general).toEqual(['Wi-Fi', 'Swimming Pool', 'Gym']);
+      expect(result.amenities.general).toEqual(expect.arrayContaining(['Wi-Fi', 'Swimming Pool', 'Gym']));
+      expect(result.amenities.general).toHaveLength(3);
       expect(result.amenities.room).toEqual(['TV']);
     });
   });

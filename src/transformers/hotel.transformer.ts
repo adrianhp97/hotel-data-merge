@@ -43,81 +43,43 @@ export class HotelTransformer {
     };
   }
 
-  /**
-   * Remove duplicate amenity names that are synonyms of other amenities
-   * @param amenities Array of amenity objects with name and synonyms
-   * @returns Array of amenity names with synonyms removed
-   */
   private static removeSynonymDuplicates(amenities: Amenity[]): string[] {
-    // Create a map of primary amenity names to their synonyms
-    const primaryAmenityMap = new Map<string, string>();
-    const allSynonyms = new Set<string>();
-
-    // First pass: collect all primary amenities and their synonyms
+    // First identify all names that appear as synonyms of other amenities
+    const synonymNames = new Set<string>();
     for (const amenity of amenities) {
-      const primaryName = amenity.name.toLowerCase().trim();
-      primaryAmenityMap.set(primaryName, amenity.name);
-      
-      // Add all synonyms to the set (handle cases where synonyms might be undefined)
       if (amenity.synonyms && Array.isArray(amenity.synonyms)) {
         for (const synonym of amenity.synonyms) {
-          const normalizedSynonym = synonym.toLowerCase().trim();
-          allSynonyms.add(normalizedSynonym);
-          // Map synonym to primary amenity name
-          if (!primaryAmenityMap.has(normalizedSynonym)) {
-            primaryAmenityMap.set(normalizedSynonym, amenity.name);
-          }
+          synonymNames.add(synonym.toLowerCase().trim());
         }
       }
     }
+    
+    // Sort by longest name first to prioritize more descriptive names
+    const sortedAmenities = [...amenities].sort((a, b) => b.name.length - a.name.length);
+    
+    const visited = new Set<string>();
+    const result: string[] = [];
 
-    // Second pass: collect unique amenities, preferring primary names over synonyms
-    const result = new Set<string>();
-    const processedNames = new Set<string>();
-
-    for (const amenity of amenities) {
+    for (const amenity of sortedAmenities) {
       const normalizedName = amenity.name.toLowerCase().trim();
       
-      // Skip if we've already processed this name or if it's a synonym of another amenity
-      if (processedNames.has(normalizedName)) {
+      // Skip if we've already seen this name or if this name is a synonym of another amenity
+      if (visited.has(normalizedName) || synonymNames.has(normalizedName)) {
         continue;
       }
 
-      // Check if this amenity name is a synonym of another amenity
-      const isThisASynonym = allSynonyms.has(normalizedName);
+      // Add this amenity to result
+      result.push(amenity.name);
       
-      if (!isThisASynonym) {
-        // This is a primary amenity, add it
-        result.add(amenity.name);
-        processedNames.add(normalizedName);
-        
-        // Also mark all its synonyms as processed
-        if (amenity.synonyms && Array.isArray(amenity.synonyms)) {
-          for (const synonym of amenity.synonyms) {
-            processedNames.add(synonym.toLowerCase().trim());
-          }
-        }
-      } else {
-        // This is a synonym, check if its primary hasn't been added yet
-        const primaryName = primaryAmenityMap.get(normalizedName);
-        if (primaryName && !Array.from(result).some(name => name.toLowerCase() === primaryName.toLowerCase())) {
-          // Find the primary amenity and add it
-          const primaryAmenity = amenities.find(a => a.name.toLowerCase() === primaryName.toLowerCase());
-          if (primaryAmenity) {
-            result.add(primaryAmenity.name);
-            processedNames.add(primaryName.toLowerCase());
-            
-            // Mark all synonyms as processed
-            if (primaryAmenity.synonyms && Array.isArray(primaryAmenity.synonyms)) {
-              for (const synonym of primaryAmenity.synonyms) {
-                processedNames.add(synonym.toLowerCase().trim());
-              }
-            }
-          }
+      // Mark this name and all its synonyms as visited
+      visited.add(normalizedName);
+      if (amenity.synonyms && Array.isArray(amenity.synonyms)) {
+        for (const synonym of amenity.synonyms) {
+          visited.add(synonym.toLowerCase().trim());
         }
       }
     }
 
-    return Array.from(result);
+    return result;
   }
 }
