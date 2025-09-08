@@ -698,6 +698,19 @@ Each supplier strategy implements three phases:
    - **Alternative**: Generic mapping configuration
    - **Rationale**: Type-safe, maintainable code over configuration
 
+### ⚠️ Known Issues
+
+#### **Amenity Duplication**
+
+- **Issue**: Amenities with identical names can be duplicated in the database when multiple supplier data processing occurs concurrently
+- **Root Cause**: Race condition where concurrent transactions check for existing amenities simultaneously and both create new entries before the other's commit
+- **Current Impact**: Database may contain multiple amenity records with the same name but different IDs
+- **Workaround**: The application logic already handles deduplication in queries, but storage efficiency is affected
+- **Future Fix**: 
+  - Add unique constraint on `amenity.name` field
+  - Implement proper conflict resolution with `ON CONFLICT` behavior (e.g., `DO NOTHING` or `DO UPDATE`)
+  - Consider using database-level upsert operations to handle concurrent inserts gracefully
+
 #### **Future Enhancements Considered:**
 
 1. **Caching Layer**: Redis for frequently accessed hotels
