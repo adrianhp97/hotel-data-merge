@@ -7,6 +7,10 @@ import { FilterQuery } from '@mikro-orm/core';
 import { SuppliersService } from 'src/provider/suppliers/suppliers.service';
 import { HotelDTO } from 'src/dto/hotel.dto';
 import { HotelTransformer } from 'src/transformers/hotel.transformer';
+import {
+  PaginatedResponse,
+  createPaginatedResponse,
+} from 'src/dto/paginated-response.dto';
 
 @Injectable()
 export class HotelsService {
@@ -17,9 +21,9 @@ export class HotelsService {
     private readonly hotelRepository: HotelRepository,
   ) {}
 
-  async getHotels(parameter: GetHotelsParameterDTO): Promise<HotelDTO[]> {
-    await this.supplierSerivice.processData();
-
+  async getHotels(
+    parameter: GetHotelsParameterDTO,
+  ): Promise<PaginatedResponse<HotelDTO>> {
     const filter: FilterQuery<Hotel> = {};
 
     if (parameter.destination_id) {
@@ -32,10 +36,26 @@ export class HotelsService {
       };
     }
 
+    // Calculate offset for pagination
+    const offset = (parameter.page - 1) * parameter.limit;
+
+    // Get total count for pagination metadata
+    const total = await this.hotelRepository.count(filter);
+
+    // Get paginated hotels
     const hotels = await this.hotelRepository.find(filter, {
       populate: ['amenities', 'destination'],
+      limit: parameter.limit,
+      offset: offset,
     });
 
-    return hotels.map((hotel) => HotelTransformer.toDTO(hotel));
+    const hotelDTOs = hotels.map((hotel) => HotelTransformer.toDTO(hotel));
+
+    return createPaginatedResponse(
+      hotelDTOs,
+      total,
+      parameter.page,
+      parameter.limit,
+    );
   }
 }

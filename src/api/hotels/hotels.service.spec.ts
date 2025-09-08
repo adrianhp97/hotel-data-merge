@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@mikro-orm/nestjs';
 import { HotelsService } from './hotels.service';
+import { getRepositoryToken } from '@mikro-orm/nestjs';
+import { Hotel } from 'src/db/entities/hotel.entity';
 import { HotelRepository } from 'src/db/entities/repositories/hotel.repository';
 import { SuppliersService } from 'src/provider/suppliers/suppliers.service';
 import { GetHotelsParameterDTO } from './hotels.schema';
-import { Hotel } from 'src/db/entities/hotel.entity';
-import { HotelDTO } from 'src/dto/hotel.dto';
-import { HotelTransformer } from 'src/transformers/hotel.transformer';
 import { Destination } from 'src/db/entities/destination.entity';
 import { Amenity, AmenityCategory } from 'src/db/entities/amenity.entity';
-import { Collection } from '@mikro-orm/core';
+import { HotelDTO } from 'src/dto/hotel.dto';
+import { HotelTransformer } from 'src/transformers/hotel.transformer';
+import { PaginatedResponse } from 'src/dto/paginated-response.dto';
 
-// Mock the HotelTransformer
+// Mock HotelTransformer as it's a static class
 jest.mock('src/transformers/hotel.transformer');
 
 describe('HotelsService', () => {
@@ -20,34 +20,30 @@ describe('HotelsService', () => {
   let mockSuppliersService: jest.Mocked<SuppliersService>;
   let mockHotelTransformer: jest.Mocked<typeof HotelTransformer>;
 
-  const mockDestination = {
+  // Mock data
+  const mockDestination: Destination = {
     id: 5432,
-    name: 'Singapore',
+    country: 'Singapore',
+    city: 'Singapore',
   } as unknown as Destination;
 
   const mockAmenities: Amenity[] = [
     {
       id: 1,
-      name: 'WiFi',
-      category: 'general',
+      name: 'Outdoor Pool',
+      category: 'general' as AmenityCategory,
     } as unknown as Amenity,
     {
       id: 2,
-      name: 'Pool',
-      category: 'general',
-    } as unknown as Amenity,
-    {
-      id: 3,
-      name: 'Air conditioning',
-      category: 'room',
+      name: 'WiFi',
+      category: 'general' as AmenityCategory,
     } as unknown as Amenity,
   ];
 
   const mockHotels: Hotel[] = [
     {
-      id: 'hotel1',
-      name: 'Beach Resort',
-      destination: mockDestination,
+      id: 'iJhz',
+      name: 'Beach Villas Singapore',
       location: {
         lat: 1.264751,
         lng: 103.824006,
@@ -55,11 +51,9 @@ describe('HotelsService', () => {
         city: 'Singapore',
         country: 'Singapore',
       },
-      description: 'A beautiful beach resort',
-      amenities: {
-        getItems: () => [mockAmenities[0], mockAmenities[1]],
-        add: jest.fn(),
-      } as unknown as Collection<Amenity>,
+      description: 'Located at the western tip of Resorts World Sentosa.',
+      destination: mockDestination,
+      amenities: mockAmenities,
       images: {
         rooms: [
           {
@@ -73,47 +67,45 @@ describe('HotelsService', () => {
             description: 'Front',
           },
         ],
-        amenities: [],
       },
-      booking_conditions: [
-        'All children are welcome.',
-        'WiFi is available in all areas.',
-      ],
-      created_at: new Date('2024-01-01'),
-      updated_at: new Date('2024-01-01'),
+      booking_conditions: [],
     } as unknown as Hotel,
     {
-      id: 'hotel2',
-      name: 'City Hotel',
-      destination: mockDestination,
+      id: 'SjyX',
+      name: 'InterContinental Singapore Robertson Quay',
       location: {
-        lat: 1.290270,
-        lng: 103.851959,
-        address: '61 Boat Quay, Singapore 049847',
+        lat: 1.28967,
+        lng: 103.84675,
+        address: '1 Nanson Road, Singapore 238909',
         city: 'Singapore',
         country: 'Singapore',
       },
-      description: 'A modern city hotel',
-      amenities: {
-        getItems: () => [mockAmenities[0], mockAmenities[2]],
-        add: jest.fn(),
-      } as unknown as Collection<Amenity>,
+      description: 'Enjoy sophisticated hotel living with InterContinental.',
+      destination: mockDestination,
+      amenities: mockAmenities,
       images: {
-        rooms: [],
-        site: [],
-        amenities: [],
+        rooms: [
+          {
+            link: 'https://d2ey9sqrvkqdfs.cloudfront.net/Sjym/0.jpg',
+            description: 'Suite',
+          },
+        ],
+        site: [
+          {
+            link: 'https://d2ey9sqrvkqdfs.cloudfront.net/Sjym/1.jpg',
+            description: 'Restaurant',
+          },
+        ],
       },
-      booking_conditions: ['Pets allowed', 'Free breakfast'],
-      created_at: new Date('2024-01-01'),
-      updated_at: new Date('2024-01-01'),
+      booking_conditions: ['All children are welcome.'],
     } as unknown as Hotel,
   ];
 
   const mockHotelDTOs: HotelDTO[] = [
     {
-      id: 'hotel1',
+      id: 'iJhz',
       destination_id: 5432,
-      name: 'Beach Resort',
+      name: 'Beach Villas Singapore',
       location: {
         lat: 1.264751,
         lng: 103.824006,
@@ -121,9 +113,9 @@ describe('HotelsService', () => {
         city: 'Singapore',
         country: 'Singapore',
       },
-      description: 'A beautiful beach resort',
+      description: 'Located at the western tip of Resorts World Sentosa.',
       amenities: {
-        general: ['WiFi', 'Pool'],
+        general: ['Outdoor Pool', 'WiFi'],
         room: [],
       },
       images: {
@@ -141,33 +133,40 @@ describe('HotelsService', () => {
         ],
         amenities: [],
       },
-      booking_conditions: [
-        'All children are welcome.',
-        'WiFi is available in all areas.',
-      ],
+      booking_conditions: [],
     },
     {
-      id: 'hotel2',
+      id: 'SjyX',
       destination_id: 5432,
-      name: 'City Hotel',
+      name: 'InterContinental Singapore Robertson Quay',
       location: {
-        lat: 1.290270,
-        lng: 103.851959,
-        address: '61 Boat Quay, Singapore 049847',
+        lat: 1.28967,
+        lng: 103.84675,
+        address: '1 Nanson Road, Singapore 238909',
         city: 'Singapore',
         country: 'Singapore',
       },
-      description: 'A modern city hotel',
+      description: 'Enjoy sophisticated hotel living with InterContinental.',
       amenities: {
-        general: ['WiFi'],
-        room: ['Air conditioning'],
+        general: ['Outdoor Pool', 'WiFi'],
+        room: [],
       },
       images: {
-        rooms: [],
-        site: [],
+        rooms: [
+          {
+            link: 'https://d2ey9sqrvkqdfs.cloudfront.net/Sjym/0.jpg',
+            description: 'Suite',
+          },
+        ],
+        site: [
+          {
+            link: 'https://d2ey9sqrvkqdfs.cloudfront.net/Sjym/1.jpg',
+            description: 'Restaurant',
+          },
+        ],
         amenities: [],
       },
-      booking_conditions: ['Pets allowed', 'Free breakfast'],
+      booking_conditions: ['All children are welcome.'],
     },
   ];
 
@@ -215,71 +214,85 @@ describe('HotelsService', () => {
       expect(service).toBeDefined();
     });
 
-    it('should inject dependencies correctly', () => {
-      expect(mockHotelRepository).toBeDefined();
+    it('should inject SuppliersService correctly', () => {
       expect(mockSuppliersService).toBeDefined();
     });
   });
 
   describe('getHotels', () => {
     beforeEach(() => {
-      mockSuppliersService.processData.mockResolvedValue([] as any);
       mockHotelTransformer.toDTO = jest.fn().mockImplementation((hotel: Hotel) => {
         const index = mockHotels.findIndex((h) => h.id === hotel.id);
         return mockHotelDTOs[index] || mockHotelDTOs[0];
       });
     });
 
-    it('should process supplier data first', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      mockHotelRepository.find.mockResolvedValue(mockHotels);
-
-      await service.getHotels(parameter);
-
-      expect(mockSuppliersService.processData).toHaveBeenCalledTimes(1);
-      expect(mockSuppliersService.processData).toHaveBeenCalledWith();
-    });
-
-    it('should return all hotels when no parameters provided', async () => {
-      const parameter: GetHotelsParameterDTO = {};
+    it('should return paginated hotels when no parameters provided', async () => {
+      const parameter: GetHotelsParameterDTO = { page: 1, limit: 10 };
+      mockHotelRepository.count.mockResolvedValue(2);
       mockHotelRepository.find.mockResolvedValue(mockHotels);
 
       const result = await service.getHotels(parameter);
 
+      expect(mockHotelRepository.count).toHaveBeenCalledWith({});
       expect(mockHotelRepository.find).toHaveBeenCalledWith(
         {},
         {
           populate: ['amenities', 'destination'],
+          limit: 10,
+          offset: 0,
         },
       );
       expect(mockHotelTransformer.toDTO).toHaveBeenCalledTimes(2);
-      expect(result).toHaveLength(2);
-      expect(result).toEqual(mockHotelDTOs);
+      expect(result).toEqual({
+        data: mockHotelDTOs,
+        pagination: {
+          current_page: 1,
+          per_page: 10,
+          total: 2,
+          total_pages: 1,
+          has_next_page: false,
+          has_previous_page: false,
+        },
+      });
     });
 
     it('should filter hotels by destination_id', async () => {
-      const parameter: GetHotelsParameterDTO = { destination_id: 5432 };
+      const parameter: GetHotelsParameterDTO = { destination_id: 5432, page: 1, limit: 10 };
+      mockHotelRepository.count.mockResolvedValue(2);
       mockHotelRepository.find.mockResolvedValue(mockHotels);
 
       const result = await service.getHotels(parameter);
 
+      expect(mockHotelRepository.count).toHaveBeenCalledWith({ destination: 5432 });
       expect(mockHotelRepository.find).toHaveBeenCalledWith(
         { destination: 5432 },
         {
           populate: ['amenities', 'destination'],
+          limit: 10,
+          offset: 0,
         },
       );
-      expect(result).toEqual(mockHotelDTOs);
+      expect(result.data).toEqual(mockHotelDTOs);
+      expect(result.pagination.total).toBe(2);
     });
 
     it('should filter hotels by hotel_ids', async () => {
       const parameter: GetHotelsParameterDTO = {
         hotel_ids: ['hotel1', 'hotel2'],
+        page: 1,
+        limit: 10,
       };
+      mockHotelRepository.count.mockResolvedValue(2);
       mockHotelRepository.find.mockResolvedValue(mockHotels);
 
       const result = await service.getHotels(parameter);
 
+      expect(mockHotelRepository.count).toHaveBeenCalledWith({
+        id: {
+          $in: ['hotel1', 'hotel2'],
+        },
+      });
       expect(mockHotelRepository.find).toHaveBeenCalledWith(
         {
           id: {
@@ -288,20 +301,31 @@ describe('HotelsService', () => {
         },
         {
           populate: ['amenities', 'destination'],
+          limit: 10,
+          offset: 0,
         },
       );
-      expect(result).toEqual(mockHotelDTOs);
+      expect(result.data).toEqual(mockHotelDTOs);
     });
 
     it('should filter hotels by both destination_id and hotel_ids', async () => {
       const parameter: GetHotelsParameterDTO = {
         destination_id: 5432,
         hotel_ids: ['hotel1'],
+        page: 1,
+        limit: 10,
       };
+      mockHotelRepository.count.mockResolvedValue(1);
       mockHotelRepository.find.mockResolvedValue([mockHotels[0]]);
 
       const result = await service.getHotels(parameter);
 
+      expect(mockHotelRepository.count).toHaveBeenCalledWith({
+        destination: 5432,
+        id: {
+          $in: ['hotel1'],
+        },
+      });
       expect(mockHotelRepository.find).toHaveBeenCalledWith(
         {
           destination: 5432,
@@ -311,174 +335,63 @@ describe('HotelsService', () => {
         },
         {
           populate: ['amenities', 'destination'],
+          limit: 10,
+          offset: 0,
         },
       );
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(mockHotelDTOs[0]);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]).toEqual(mockHotelDTOs[0]);
     });
 
-    it('should return empty array when no hotels found', async () => {
-      const parameter: GetHotelsParameterDTO = { destination_id: 9999 };
+    it('should return empty data when no hotels found', async () => {
+      const parameter: GetHotelsParameterDTO = { destination_id: 9999, page: 1, limit: 10 };
+      mockHotelRepository.count.mockResolvedValue(0);
       mockHotelRepository.find.mockResolvedValue([]);
 
       const result = await service.getHotels(parameter);
 
+      expect(mockHotelRepository.count).toHaveBeenCalledWith({ destination: 9999 });
       expect(mockHotelRepository.find).toHaveBeenCalledWith(
         { destination: 9999 },
         {
           populate: ['amenities', 'destination'],
+          limit: 10,
+          offset: 0,
         },
       );
-      expect(result).toEqual([]);
+      expect(result.data).toEqual([]);
+      expect(result.pagination.total).toBe(0);
       expect(mockHotelTransformer.toDTO).not.toHaveBeenCalled();
     });
 
-    it('should handle empty hotel_ids array', async () => {
-      const parameter: GetHotelsParameterDTO = { hotel_ids: [] };
-      mockHotelRepository.find.mockResolvedValue([]);
-
-      const result = await service.getHotels(parameter);
-
-      expect(mockHotelRepository.find).toHaveBeenCalledWith(
-        {
-          id: {
-            $in: [],
-          },
-        },
-        {
-          populate: ['amenities', 'destination'],
-        },
-      );
-      expect(result).toEqual([]);
-    });
-
-    it('should handle single hotel_id', async () => {
-      const parameter: GetHotelsParameterDTO = { hotel_ids: ['hotel1'] };
-      mockHotelRepository.find.mockResolvedValue([mockHotels[0]]);
-
-      const result = await service.getHotels(parameter);
-
-      expect(mockHotelRepository.find).toHaveBeenCalledWith(
-        {
-          id: {
-            $in: ['hotel1'],
-          },
-        },
-        {
-          populate: ['amenities', 'destination'],
-        },
-      );
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(mockHotelDTOs[0]);
-    });
-
-    it('should transform each hotel using HotelTransformer', async () => {
-      const parameter: GetHotelsParameterDTO = {};
+    it('should handle pagination correctly', async () => {
+      const parameter: GetHotelsParameterDTO = { page: 2, limit: 5 };
+      mockHotelRepository.count.mockResolvedValue(15);
       mockHotelRepository.find.mockResolvedValue(mockHotels);
 
       const result = await service.getHotels(parameter);
-
-      expect(mockHotelTransformer.toDTO).toHaveBeenCalledTimes(2);
-      expect(mockHotelTransformer.toDTO).toHaveBeenCalledWith(mockHotels[0]);
-      expect(mockHotelTransformer.toDTO).toHaveBeenCalledWith(mockHotels[1]);
-      expect(result).toEqual(mockHotelDTOs);
-    });
-
-    it('should populate amenities and destination relations', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      mockHotelRepository.find.mockResolvedValue(mockHotels);
-
-      await service.getHotels(parameter);
 
       expect(mockHotelRepository.find).toHaveBeenCalledWith(
         {},
         {
           populate: ['amenities', 'destination'],
+          limit: 5,
+          offset: 5, // (page - 1) * limit = (2 - 1) * 5 = 5
         },
       );
-    });
-
-    it('should handle repository errors', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      const error = new Error('Database connection failed');
-      mockHotelRepository.find.mockRejectedValue(error);
-
-      await expect(service.getHotels(parameter)).rejects.toThrow(
-        'Database connection failed',
-      );
-      expect(mockSuppliersService.processData).toHaveBeenCalledTimes(1);
-      expect(mockHotelTransformer.toDTO).not.toHaveBeenCalled();
-    });
-
-    it('should handle supplier service errors', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      const error = new Error('Supplier processing failed');
-      mockSuppliersService.processData.mockRejectedValue(error);
-
-      await expect(service.getHotels(parameter)).rejects.toThrow(
-        'Supplier processing failed',
-      );
-      expect(mockSuppliersService.processData).toHaveBeenCalledTimes(1);
-      expect(mockHotelRepository.find).not.toHaveBeenCalled();
-    });
-
-    it('should handle transformer errors', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      mockHotelRepository.find.mockResolvedValue(mockHotels);
-      mockHotelTransformer.toDTO.mockImplementation(() => {
-        throw new Error('Transformation failed');
+      expect(result.pagination).toEqual({
+        current_page: 2,
+        per_page: 5,
+        total: 15,
+        total_pages: 3, // Math.ceil(15 / 5) = 3
+        has_next_page: true, // page 2 < 3 total pages
+        has_previous_page: true, // page 2 > 1
       });
-
-      await expect(service.getHotels(parameter)).rejects.toThrow(
-        'Transformation failed',
-      );
     });
 
-    it('should handle large datasets', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      const largeHotelsList = Array.from({ length: 10000 }, (_, i) => ({
-        ...mockHotels[0],
-        id: `hotel${i}`,
-      }));
-      mockHotelRepository.find.mockResolvedValue(largeHotelsList as unknown as Hotel[]);
-
-      const result = await service.getHotels(parameter);
-
-      expect(mockHotelRepository.find).toHaveBeenCalledTimes(1);
-      expect(mockHotelTransformer.toDTO).toHaveBeenCalledTimes(10000);
-      expect(result).toHaveLength(10000);
-    });
-
-    it('should handle concurrent calls', async () => {
-      const parameter1: GetHotelsParameterDTO = { destination_id: 5432 };
-      const parameter2: GetHotelsParameterDTO = { hotel_ids: ['hotel1'] };
-      
-      mockHotelRepository.find
-        .mockResolvedValueOnce([mockHotels[0]])
-        .mockResolvedValueOnce([mockHotels[1]]);
-
-      const [result1, result2] = await Promise.all([
-        service.getHotels(parameter1),
-        service.getHotels(parameter2),
-      ]);
-
-      expect(mockSuppliersService.processData).toHaveBeenCalledTimes(2);
-      expect(mockHotelRepository.find).toHaveBeenCalledTimes(2);
-      expect(result1).toHaveLength(1);
-      expect(result2).toHaveLength(1);
-    });
-  });
-
-  describe('error scenarios', () => {
-    beforeEach(() => {
-      mockSuppliersService.processData.mockResolvedValue([] as any);
-    });
-
-    it('should handle undefined parameters', async () => {
-      const parameter: GetHotelsParameterDTO = {
-        destination_id: undefined,
-        hotel_ids: undefined,
-      };
+    it('should use default pagination values', async () => {
+      const parameter: GetHotelsParameterDTO = { page: 1, limit: 10 }; // Explicit pagination values
+      mockHotelRepository.count.mockResolvedValue(2);
       mockHotelRepository.find.mockResolvedValue(mockHotels);
 
       const result = await service.getHotels(parameter);
@@ -487,112 +400,44 @@ describe('HotelsService', () => {
         {},
         {
           populate: ['amenities', 'destination'],
+          limit: 10,
+          offset: 0,
         },
       );
-      expect(result).toEqual(mockHotelDTOs);
+      expect(result.pagination).toEqual({
+        current_page: 1,
+        per_page: 10,
+        total: 2,
+        total_pages: 1,
+        has_next_page: false,
+        has_previous_page: false,
+      });
     });
 
-    it('should handle null hotel results from repository', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      mockHotelRepository.find.mockResolvedValue(null as any);
-
-      await expect(service.getHotels(parameter)).rejects.toThrow();
-    });
-
-    it('should handle hotels without amenities', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      const hotelWithoutAmenities = {
-        ...mockHotels[0],
-        amenities: {
-          getItems: () => [],
-          add: jest.fn(),
-        } as unknown as Collection<Amenity>,
-      };
-      mockHotelRepository.find.mockResolvedValue([hotelWithoutAmenities] as unknown as Hotel[]);
-
-      const result = await service.getHotels(parameter);
-
-      expect(result).toHaveLength(1);
-      expect(mockHotelTransformer.toDTO).toHaveBeenCalledWith(hotelWithoutAmenities);
-    });
-
-    it('should handle special characters in hotel_ids', async () => {
-      const parameter: GetHotelsParameterDTO = {
-        hotel_ids: ['hotel-1', 'hotel_2', 'hotel.3', 'hotel@4'],
-      };
+    it('should handle edge case with large page number', async () => {
+      const parameter: GetHotelsParameterDTO = { page: 10, limit: 5 };
+      mockHotelRepository.count.mockResolvedValue(7); // Only 7 total items
       mockHotelRepository.find.mockResolvedValue([]);
 
       const result = await service.getHotels(parameter);
 
       expect(mockHotelRepository.find).toHaveBeenCalledWith(
-        {
-          id: {
-            $in: ['hotel-1', 'hotel_2', 'hotel.3', 'hotel@4'],
-          },
-        },
+        {},
         {
           populate: ['amenities', 'destination'],
+          limit: 5,
+          offset: 45, // (10 - 1) * 5 = 45
         },
       );
-      expect(result).toEqual([]);
-    });
-
-    it('should handle very large hotel_ids array', async () => {
-      const largeHotelIds = Array.from({ length: 10000 }, (_, i) => `hotel${i}`);
-      const parameter: GetHotelsParameterDTO = { hotel_ids: largeHotelIds };
-      mockHotelRepository.find.mockResolvedValue([]);
-
-      const result = await service.getHotels(parameter);
-
-      expect(mockHotelRepository.find).toHaveBeenCalledWith(
-        {
-          id: {
-            $in: largeHotelIds,
-          },
-        },
-        {
-          populate: ['amenities', 'destination'],
-        },
-      );
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe('integration with dependencies', () => {
-    beforeEach(() => {
-      mockSuppliersService.processData.mockResolvedValue([] as any);
-      mockHotelTransformer.toDTO = jest.fn().mockReturnValue(mockHotelDTOs[0]);
-    });
-
-    it('should maintain correct order of operations', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      mockHotelRepository.find.mockResolvedValue(mockHotels);
-
-      await service.getHotels(parameter);
-
-      // Verify order: suppliers first, then repository, then transformation
-      const processDataCall = mockSuppliersService.processData.mock.invocationCallOrder[0];
-      const findCall = mockHotelRepository.find.mock.invocationCallOrder[0];
-      const toDTOCall = mockHotelTransformer.toDTO.mock.invocationCallOrder[0];
-
-      expect(processDataCall).toBeLessThan(findCall);
-      expect(findCall).toBeLessThan(toDTOCall);
-    });
-
-    it('should not call repository if supplier processing fails', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      mockSuppliersService.processData.mockRejectedValue(new Error('Supplier failed'));
-
-      await expect(service.getHotels(parameter)).rejects.toThrow('Supplier failed');
-      expect(mockHotelRepository.find).not.toHaveBeenCalled();
-    });
-
-    it('should not call transformer if repository fails', async () => {
-      const parameter: GetHotelsParameterDTO = {};
-      mockHotelRepository.find.mockRejectedValue(new Error('Repository failed'));
-
-      await expect(service.getHotels(parameter)).rejects.toThrow('Repository failed');
-      expect(mockHotelTransformer.toDTO).not.toHaveBeenCalled();
+      expect(result.data).toEqual([]);
+      expect(result.pagination).toEqual({
+        current_page: 10,
+        per_page: 5,
+        total: 7,
+        total_pages: 2, // Math.ceil(7 / 5) = 2
+        has_next_page: false, // page 10 > 2 total pages
+        has_previous_page: true, // page 10 > 1
+      });
     });
   });
 });

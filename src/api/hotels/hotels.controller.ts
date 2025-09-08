@@ -13,9 +13,8 @@ export class HotelsController {
   @Get()
   @UsePipes(new ZodValidationPipe(getHotelsParameterSchema))
   async getHotels(@Query() query: GetHotelsParameterDTO) {
-    // TODO: Pagination
-    const hotels = await this.hotelService.getHotels(query);
+    const paginatedHotels = await this.hotelService.getHotels(query);
 
-    return hotels;
+    return paginatedHotels;
   }
 }
