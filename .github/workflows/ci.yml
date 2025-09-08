@@ -52,23 +52,39 @@ jobs:
 
     - name: Setup test environment variables
       run: |
-        echo "DATABASE_URL=postgresql://test_user:test_password@localhost:5432/hotel-management-test" >> $GITHUB_ENV
+        echo "DB_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_PORT=5432" >> $GITHUB_ENV
+        echo "DB_USERNAME=test_user" >> $GITHUB_ENV
+        echo "DB_PASSWORD=test_password" >> $GITHUB_ENV
+        echo "DB_NAME=hotel-management-test" >> $GITHUB_ENV
         echo "NODE_ENV=test" >> $GITHUB_ENV
 
     - name: Run database migrations
       run: npm run migration:up
       env:
-        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/hotel-management-test
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USERNAME: test_user
+        DB_PASSWORD: test_password
+        DB_NAME: hotel-management-test
 
     - name: Run unit tests
       run: npm run test:cov
       env:
-        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/hotel-management-test
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USERNAME: test_user
+        DB_PASSWORD: test_password
+        DB_NAME: hotel-management-test
 
     - name: Run e2e tests  
       run: npm run test:e2e
       env:
-        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/hotel-management-test
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USERNAME: test_user
+        DB_PASSWORD: test_password
+        DB_NAME: hotel-management-test
 
     - name: Build project
       run: npm run build
