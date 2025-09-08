@@ -438,18 +438,119 @@ Direct API ETL: Would provide freshest data at cost of performance + reliability
 - **Smart Invalidation**: Trigger ETL when supplier data actually changes (webhooks)
 - **Tiered Freshness**: Different update frequencies for different data types
 
-#### **3. ETL (Extract, Transform, Load) Pipeline**
+#### **3. API Response Strategy - Pagination vs. Full Results**
+
+Two approaches were considered for the hotels API endpoint response format:
+
+##### **Option 1: Return All Results**
+```json
+GET /hotels?destination_id=5432
+[
+  { "id": "hotel1", "name": "Hotel A", ... },
+  { "id": "hotel2", "name": "Hotel B", ... },
+  ... // All matching hotels
+]
+```
+
+**Approach**: Return all matching hotels in a single response array.
+
+**Pros:**
+- **Simple Client Logic**: No need to handle pagination on client side
+- **Complete Data**: All results available immediately
+- **Easier Caching**: Single request covers all data
+- **Reduced API Calls**: One request gets everything
+- **Stateless**: No page state to manage
+
+**Cons:**
+- **Large Response Size**: Potentially massive JSON payloads (MBs for popular destinations)
+- **Slow Response Time**: Large serialization and network transfer time
+- **Memory Usage**: High server memory consumption for large result sets
+- **Poor User Experience**: Users wait longer for data they may not need
+- **Database Load**: Expensive queries without LIMIT clauses
+- **Timeout Risks**: Large responses may exceed API gateway timeouts
+
+##### **Option 2: Paginated Results (Chosen Implementation)**
+```json
+GET /hotels?destination_id=5432&page=1&limit=10
+{
+  "data": [
+    { "id": "hotel1", "name": "Hotel A", ... },
+    { "id": "hotel2", "name": "Hotel B", ... }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "per_page": 10,
+    "total": 150,
+    "total_pages": 15,
+    "has_next_page": true,
+    "has_previous_page": false
+  }
+}
+```
+
+**Approach**: Return results in pages with metadata about total results and pagination state.
+
+**Pros:**
+- **Fast Response Times**: Small, consistent response sizes (typically <50KB)
+- **Efficient Memory Usage**: Server processes only requested page
+- **Better User Experience**: Quick initial load, progressive data loading
+- **Database Optimization**: LIMIT/OFFSET queries are highly optimized
+- **Scalable**: Performance consistent regardless of total result count
+- **Standard Practice**: Follows REST API conventions
+
+**Cons:**
+- **Client Complexity**: Client must handle pagination logic
+- **Multiple Requests**: Need several API calls for complete dataset
+- **State Management**: Client needs to track pagination state
+- **Potential Data Skipping**: Results might change between page requests
+
+##### **Decision Rationale:**
+
+**Chosen: Paginated Results** for the following reasons:
+
+1. **Performance Priority**: Hotel search results need to load quickly; users expect sub-second response times
+2. **User Behavior**: Users typically browse first 10-20 results; rarely need all results immediately
+3. **Scalability**: Popular destinations (Singapore, Tokyo) could have 1000+ hotels
+4. **Mobile Experience**: Smaller payloads crucial for mobile users on slow connections
+5. **Progressive Loading**: Better UX to show results incrementally than long wait times
+6. **API Standards**: Industry standard for REST APIs (Google, Twitter, GitHub all use pagination)
+
+**Implementation Details:**
+```typescript
+// Default and maximum limits
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 100;
+
+// Pagination calculation
+const offset = (page - 1) * limit;
+const total_pages = Math.ceil(total / limit);
+```
+
+**Trade-off Summary:**
+```
+Paginated API: Chose performance + UX over client simplicity
+Full Results API: Would provide simplicity at cost of performance + scalability
+```
+
+##### **Pagination Strategy Considerations:**
+
+1. **Offset-based Pagination**: Chosen for simplicity and familiar UX
+2. **Alternative: Cursor-based**: More complex but better for real-time data
+3. **Default Page Size**: 10 items balances performance vs. user needs
+4. **Maximum Limit**: 100 items prevents abuse while allowing bulk operations
+
+#### **4. ETL (Extract, Transform, Load) Pipeline**
 Each supplier strategy implements three phases:
 - **Extract**: Fetch raw data from supplier API
 - **Transform**: Clean, normalize, and merge data with existing records
 - **Load**: Persist merged data to database
 
-#### **4. Database-First Approach**
+#### **5. Database-First Approach**
 - **PostgreSQL**: Chosen for ACID compliance and complex query support
 - **MikroORM**: Provides TypeScript-first ORM with migrations and entity relationships
 - **Transactional Operations**: All data operations wrapped in transactions for consistency
 
-#### **5. Scheduled Processing**
+#### **6. Scheduled Processing**
 - **Cron Jobs**: Automated hourly data processing using `@nestjs/schedule`
 - **Manual Triggers**: API endpoint for on-demand data refresh
 - **Error Handling**: Comprehensive logging and error recovery
