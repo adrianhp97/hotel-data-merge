@@ -357,18 +357,99 @@ Strategy Pattern: Chose developer efficiency + type safety over runtime flexibil
 Database Config: Would provide business flexibility at cost of technical complexity
 ```
 
-#### **2. ETL (Extract, Transform, Load) Pipeline**
+#### **2. Data Processing Trigger Strategy**
+
+Two approaches were considered for when and how to trigger the ETL data processing:
+
+##### **Option 1: Direct API-Triggered ETL**
+```
+Client Request → API → Real-time ETL → Response
+```
+
+**Approach**: Trigger ETL processing directly when API requests are made, fetching fresh data from suppliers for each request.
+
+**Pros:**
+- **Real-time Data**: Always returns the most current data from suppliers
+- **Simpler Architecture**: No background jobs or scheduling complexity
+- **No Stale Data**: Eliminates data freshness concerns
+- **Resource Efficiency**: Only processes data when actually needed
+- **Easier Debugging**: Request-response cycle is synchronous and traceable
+
+**Cons:**
+- **High Latency**: API responses slow due to external supplier calls (3+ seconds)
+- **Supplier Dependency**: API availability depends on all supplier endpoints being up
+- **Rate Limiting**: Risk of hitting supplier API rate limits with multiple concurrent requests
+- **Inconsistent Performance**: Response times vary based on supplier response times
+- **Error Propagation**: Supplier failures directly impact user-facing API
+- **Resource Waste**: Repeated processing of same data for multiple requests
+
+##### **Option 2: Scheduled ETL with Cached Results (Chosen Implementation)**
+```
+Scheduler → ETL → Database ← API ← Client Request
+```
+
+**Approach**: Use cron jobs to periodically fetch and process supplier data, serve API requests from cached database results.
+
+**Pros:**
+- **Fast API Response**: Sub-second response times from database cache
+- **Resilience**: API remains available even if suppliers are down
+- **Consistent Performance**: Predictable response times regardless of supplier status
+- **Rate Limit Friendly**: Controlled, scheduled calls to supplier APIs
+- **Batch Processing**: Efficient processing of all hotels at once
+- **Error Isolation**: Supplier issues don't directly impact user experience
+
+**Cons:**
+- **Data Staleness**: Data can be up to 1 hour old (scheduling interval)
+- **Complex Architecture**: Requires background job management and monitoring
+- **Resource Usage**: Processing runs even when no API requests are made
+- **Storage Requirements**: Need to persist processed data in database
+- **Debugging Complexity**: Separate processing pipeline from API request flow
+
+##### **Decision Rationale:**
+
+**Chosen: Scheduled ETL** for the following reasons:
+
+1. **User Experience Priority**: API response time critical for user experience; 50ms vs 3000ms response time
+2. **Reliability Requirements**: Hotel booking systems need high availability; can't depend on external suppliers
+3. **Scalability**: Multiple concurrent users would overwhelm supplier APIs with direct calls
+4. **Business Context**: Hotel data doesn't change frequently; hourly updates sufficient for business needs
+5. **Error Handling**: Graceful degradation better than complete API failure when suppliers are down
+6. **Cost Efficiency**: Fewer API calls to external suppliers reduce potential usage costs
+
+**Implementation Hybrid:**
+```typescript
+// Scheduled processing (primary)
+@Cron(CronExpression.EVERY_HOUR)
+async handleHourlyDataProcessing() { ... }
+
+// Manual trigger (backup/testing)
+@Post('/scheduler/trigger')
+async triggerDataProcessing() { ... }
+```
+
+**Trade-off Summary:**
+```
+Scheduled ETL: Chose user experience + reliability over real-time data freshness
+Direct API ETL: Would provide freshest data at cost of performance + reliability
+```
+
+##### **Future Considerations:**
+- **Hybrid Approach**: Cache-first with optional real-time refresh for premium users
+- **Smart Invalidation**: Trigger ETL when supplier data actually changes (webhooks)
+- **Tiered Freshness**: Different update frequencies for different data types
+
+#### **3. ETL (Extract, Transform, Load) Pipeline**
 Each supplier strategy implements three phases:
 - **Extract**: Fetch raw data from supplier API
 - **Transform**: Clean, normalize, and merge data with existing records
 - **Load**: Persist merged data to database
 
-#### **3. Database-First Approach**
+#### **4. Database-First Approach**
 - **PostgreSQL**: Chosen for ACID compliance and complex query support
 - **MikroORM**: Provides TypeScript-first ORM with migrations and entity relationships
 - **Transactional Operations**: All data operations wrapped in transactions for consistency
 
-#### **4. Scheduled Processing**
+#### **5. Scheduled Processing**
 - **Cron Jobs**: Automated hourly data processing using `@nestjs/schedule`
 - **Manual Triggers**: API endpoint for on-demand data refresh
 - **Error Handling**: Comprehensive logging and error recovery
